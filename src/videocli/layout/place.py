@@ -126,7 +126,9 @@ def graphic_box(ws: Any, edl: Any, template: str, params_given: dict[str, Any]) 
     W, H = edl.resolution
     lay = layout(t, p, brand, W, H)
     x0, y0, x1, y1 = lay.box
-    if (x1 - x0) >= W * 0.95 and (y1 - y0) >= H * 0.95:
+    from videocli.graphics.lint import FULL_FRAME
+
+    if (t.design or t.name) in FULL_FRAME or ((x1 - x0) >= W * 0.95 and (y1 - y0) >= H * 0.95):
         return None  # full-frame cards (title, end card) cover everything by design
     return [round(x0 / W, 4), round(y0 / H, 4), round((x1 - x0) / W, 4), round((y1 - y0) / H, 4)]
 
