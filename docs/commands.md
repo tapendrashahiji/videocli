@@ -45,6 +45,30 @@ Exit codes: 0, 1, 2, 3, 4 · supports writes, `--dry-run`, `--estimate`
 | `--prompt` | text |  | Initial prompt for the speech model (names, jargon). |
 | `--profile` | text |  | lecture (default set), artistic or full (adds shots, motion, faces, prosody, music, …). |
 
+## `videocli assemble`
+
+Build the cut in editor stages: radio (sound), picture (coverage needs), music
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `-o NAME` | text | yes |  |
+| `--stage` | text |  | radio, picture or music (later stages build on the existing EDL). |
+| `--music FILE` | text |  |  |
+
+## `videocli audit`
+
+Craft against a style profile and the brief: pace (too slow weighs most), coverage, beats, jump cuts, repeats
+
+Exit codes: 0, 2, 4, 5
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME NAME` | text | yes |  |
+| `--style NAME` | text |  |  |
+| `--fail-on` | text |  | info, warn or error: the severity that fails (exit 5). |
+
 ## `videocli brand set`
 
 Set the brand kit used by every graphic (re-render to update them all)
@@ -58,6 +82,30 @@ Exit codes: 0, 2 · supports writes, `--dry-run`
 | `--colors #111,#fff,#e63` | text |  | primary, secondary, accent |
 | `--logo FILE` | text |  |  |
 | `--safe-margin` | number |  |  |
+
+## `videocli brief set`
+
+Set or update the brief
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `--logline` | text |  |  |
+| `--audience` | text |  |  |
+| `--duration S` | number |  |  |
+| `--aspect` | text |  |  |
+| `--style NAME` | text |  |  |
+| `--tone` | text |  |  |
+| `--must-include "phrase"` | text |  |  |
+| `--must-avoid "phrase"` | text |  |  |
+| `--music FILE` | text |  | Music for the music stage of assemble. |
+
+## `videocli brief show`
+
+The brief
+
+Exit codes: 0
 
 ## `videocli cache clear`
 
@@ -784,6 +832,18 @@ Exit codes: 0, 1, 3, 4
 |---|---|---|---|
 | `FILE` | text | yes | Media file (or a registered source id). |
 
+## `videocli refine`
+
+Editorial passes: coverage, split-edits, action, beats, pacing, match, punch (--dry-run lists proposals)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--passes` | text |  |  |
+| `--style NAME` | text |  |  |
+
 ## `videocli render`
 
 Render an EDL with the cached render graph (resumable)
@@ -845,6 +905,17 @@ Exit codes: 0, 2, 4
 | `--to T` | time |  |  |
 | `--ungraded` | flag |  | EDL: measure before the grade. |
 | `--sheet` | flag |  | EDL: also write before/after stills. |
+
+## `videocli selects`
+
+Rank candidate passages per story beat (content judged through a work order) — every select says why
+
+Exit codes: 0, 2, 4, 6 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `--beat ID` | text |  |  |
+| `--per-beat` | integer |  |  |
 
 ## `videocli setup`
 
@@ -941,6 +1012,48 @@ Exit codes: 0, 3, 4
 |---|---|---|---|
 | `FILE` | text | yes |  |
 
+## `videocli story init`
+
+Start a story from an archetype (doc, interview, tutorial, promo, music, custom)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `--archetype` | text |  |  |
+
+## `videocli story set`
+
+Add or change a beat (intent, target seconds, position, chosen selects)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `BEAT BEAT` | text | yes |  |
+| `--intent` | text |  |  |
+| `--seconds` | number |  |  |
+| `--after BEAT` | text |  |  |
+| `--choose I,J` | text |  | Indices of the selects to use. |
+| `--remove` | flag |  |  |
+
+## `videocli story show`
+
+The story, its beats and their selects
+
+Exit codes: 0, 4
+
+## `videocli stringout`
+
+All selects for a beat (or every beat) in one EDL, for review
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `--beat ID` | text |  |  |
+| `-o NAME` | text | yes |  |
+
 ## `videocli strip`
 
 Filmstrip of frames over the audio waveform for a short window (inspect one cut)
@@ -954,6 +1067,38 @@ Exit codes: 0, 1, 2, 4 · supports writes
 | `--to T` | time | yes |  |
 | `--width` | integer |  |  |
 | `--frames` | integer |  | Frames across the window. |
+
+## `videocli style compare`
+
+An EDL's (or video's) metrics beside a profile, with deviations
+
+Exit codes: 0, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `TARGET EDL_OR_VIDEO` | text | yes |  |
+
+## `videocli style learn`
+
+Measure reference edits and merge them into a named profile
+
+Exit codes: 0, 1, 2, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `REFS REF...` | text | yes |  |
+| `-o NAME` | text | yes |  |
+
+## `videocli style show`
+
+A style profile
+
+Exit codes: 0, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
 
 ## `videocli suggest`
 

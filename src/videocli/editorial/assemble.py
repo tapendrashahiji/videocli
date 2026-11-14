@@ -8,8 +8,8 @@ from videocli.core.cache import read_artifact
 from videocli.core.errors import InputError
 from videocli.core.timeutil import ms
 from videocli.core.workspace import Workspace
-from videocli.edl.model import EDL, AudioItem, Clip, Marker
 from videocli.editorial.brief import Brief, Select, Story
+from videocli.edl.model import EDL, AudioItem, Clip, Marker
 
 FILLERS = {"um", "uh", "erm", "er", "ah", "hmm", "like"}
 
@@ -66,7 +66,7 @@ def rank(story: Story, cands: list[dict[str, Any]], answers: dict[str, Any], per
         for rank_i, idx in enumerate(picks):
             c = cands[idx]
             content = 1.0 / (1 + rank_i)
-            score = round(0.6 * content + 0.3 * c["delivery"] + 0.1 * c["usability"], 3)
+            score = round(0.5 * content + 0.4 * c["delivery"] + 0.1 * c["usability"], 3)
             reason = f"content #{rank_i + 1} for '{b.id}' ({why}); delivery {c['delivery']:.2f}" + ("; a retake" if c["retake"] else "")
             scored.append(Select(source=c["source"], start=c["start"], end=c["end"], score=score, why=reason, text=c["text"]))
         scored.sort(key=lambda s: -s.score)
@@ -180,7 +180,7 @@ def music_stage(ws: Workspace, edl: EDL, music_path: str) -> dict[str, Any]:
     ref, _ = source_ref(ws, src)
     plan = fit(ws, src, edl.output_duration())
     ops.add_source(edl, src.id, ref)
-    for k, part in enumerate(plan["parts"]):
+    for _k, part in enumerate(plan["parts"]):
         edl.tracks.audio.append(AudioItem(id=edl.next_id("m"), source=src.id, role="music", start=part["start"], end=part["end"],
                                           at=part["at"], gain_db=-14.0, duck_db=-10.0, fade=part["fade"]))
     return plan

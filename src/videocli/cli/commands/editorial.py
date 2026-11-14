@@ -83,8 +83,8 @@ def register(app: typer.Typer) -> None:
     @command(style, "compare", group="style", summary="An EDL's (or video's) metrics beside a profile, with deviations", exit_codes=(0, 4), **P9)
     def style_compare(name: str = typer.Argument(...), target: str = typer.Argument(..., metavar="EDL_OR_VIDEO")) -> None:
         from videocli.core.source import lookup
-        from videocli.edl import io
         from videocli.editorial import style as st
+        from videocli.edl import io
 
         ws = state.workspace()
         prof = st.load(ws, name)
@@ -169,9 +169,9 @@ def register(app: typer.Typer) -> None:
 
     @command(app, "stringout", summary="All selects for a beat (or every beat) in one EDL, for review", **W)
     def stringout(beat: Optional[str] = typer.Option(None, "--beat", metavar="ID"), output: str = typer.Option(..., "-o", "--output", metavar="NAME")) -> None:
-        from videocli.edl import io
         from videocli.editorial import assemble as asm
         from videocli.editorial.brief import load_story
+        from videocli.edl import io
 
         ws = state.workspace()
         edl = asm.stringout(ws, load_story(ws), output, beat)
@@ -185,9 +185,9 @@ def register(app: typer.Typer) -> None:
                  stage: str = typer.Option("radio", "--stage", help="radio, picture or music (later stages build on the existing EDL)."),
                  music: Optional[str] = typer.Option(None, "--music", metavar="FILE")) -> None:
         from videocli.core.errors import UsageError
-        from videocli.edl import io
         from videocli.editorial import assemble as asm
         from videocli.editorial.brief import load_brief, load_story
+        from videocli.edl import io
 
         ws = state.workspace()
         b = load_brief(ws)

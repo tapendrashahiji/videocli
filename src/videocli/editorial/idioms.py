@@ -56,7 +56,7 @@ def jump_cuts(edl: EDL) -> list[tuple[str, str, float]]:
     """Neighbouring spine clips from the same source and shot with a small gap: the picture jumps."""
     tm = edl.timemap()
     out = []
-    for (a, b), sp in zip(zip(edl.tracks.main, edl.tracks.main[1:]), tm.spans):
+    for (a, b), sp in zip(zip(edl.tracks.main, edl.tracks.main[1:], strict=False), tm.spans, strict=False):
         if a.source == b.source and 0 < b.start - a.end < 30:
             out.append((a.id, b.id, ms(sp.out_end)))
     return out
@@ -153,7 +153,7 @@ def split_edits(edl: EDL, f: Facts, style: dict[str, Any] | None) -> list[Change
     rate = float(((style or {}).get("grammar") or {}).get("split_edit_rate") or 0.3)
     out = []
     main = edl.tracks.main
-    for i, (a, b) in enumerate(zip(main, main[1:])):
+    for i, (a, b) in enumerate(zip(main, main[1:], strict=False)):
         speaker_change = a.source != b.source
         dia_a, dia_b = f.art(a.source, "diarize").get("turns", []), f.art(b.source, "diarize").get("turns", [])
         if dia_a and dia_b:
@@ -210,7 +210,7 @@ def beats(edl: EDL, f: Facts, style: dict[str, Any] | None) -> list[Change]:
         return []
     out = []
     arr = np.asarray(out_beats)
-    for c, sp in zip(edl.tracks.main[:-1], tm.spans):
+    for c, sp in zip(edl.tracks.main[:-1], tm.spans, strict=False):
         if c.locked:
             continue
         nearest = float(arr[np.argmin(np.abs(arr - sp.out_end))])
@@ -225,7 +225,7 @@ def beats(edl: EDL, f: Facts, style: dict[str, Any] | None) -> list[Change]:
 
 def match(edl: EDL, f: Facts, style: dict[str, Any] | None) -> list[Change]:
     out = []
-    for a, b in zip(edl.tracks.main, edl.tracks.main[1:]):
+    for a, b in zip(edl.tracks.main, edl.tracks.main[1:], strict=False):
         if a.source == b.source:
             continue
         na = f.art(a.source, "embed")

@@ -203,11 +203,14 @@ def track_beats(x: np.ndarray, sr: int) -> dict[str, Any]:
     # downbeats: the phase (of 4) whose beats carry the most onset strength
     phase = int(np.argmax([env[beats[k::4]].sum() for k in range(4)])) if len(beats) >= 8 else 0
     down = beats[phase::4]
-    return {"tempo": round(float(tempo), 1), "beats": [ms(b / fps) for b in beats], "downbeats": [ms(b / fps) for b in down], "env": env, "fps": fps}
+    off = 512 / sr  # frame times are window starts; the onset sits near the window centre
+    return {"tempo": round(float(tempo), 1), "beats": [ms(b / fps + off) for b in beats], "downbeats": [ms(b / fps + off) for b in down],
+            "env": env, "fps": fps}
 
 
 class MusicAnalyzer(_Base):
     name = "music"
+    version = 2
     requires: tuple[str, ...] = ("audio",)
     schema = "videocli.music/v1"
 

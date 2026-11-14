@@ -29,7 +29,7 @@ def pace_metrics(shot_lengths: list[float], shot_static: list[bool] | None = Non
         a, b = duration * k / 5, duration * (k + 1) / 5
         cuts = int(((starts > a) & (starts <= b)).sum())
         curve.append(round(cuts / max((b - a) / 60, 1e-6), 1))
-    static = [x for x, s in zip(L, shot_static or [True] * len(L)) if s]
+    static = [x for x, s in zip(L, shot_static or [True] * len(L), strict=False) if s]
     return {
         "asl": round(float(L.mean()), 2), "median_shot": round(float(np.median(L)), 2), "p90_shot": round(float(np.percentile(L, 90)), 2),
         "max_static_hold": round(float(max(static) if static else 0.0), 2), "cuts_per_min": round((len(L) - 1) / max(duration / 60, 1e-6), 1),
@@ -72,7 +72,7 @@ def measure_source(ws: Workspace, src: Any, settings: Any) -> dict[str, Any]:
     tr = load_artifact(ws, src, "transcript", required=False)
     if tr:
         words = [w for s in tr.get("segments", []) for w in s.get("words", [])]
-        pauses = [b["start"] - a["end"] for a, b in zip(words, words[1:]) if b["start"] - a["end"] > 0.1]
+        pauses = [b["start"] - a["end"] for a, b in zip(words, words[1:], strict=False) if b["start"] - a["end"] > 0.1]
         out["speech"] = {"wpm": round(len(words) / max(dur / 60, 1e-6), 1), "kept_pause_p50": round(float(np.median(pauses)), 2) if pauses else None}
     lo = load_artifact(ws, src, "loudness", required=False) or {}
     out["sound"] = {"integrated_lufs": lo.get("integrated_lufs")}
@@ -139,7 +139,7 @@ def edl_metrics(ws: Workspace, edl: Any) -> dict[str, Any]:
         sc = (read_artifact(ws.source_dir(sp.source) / "scenes.json") or {}).get("scenes", [])
         mo = {s["id"]: s for s in (read_artifact(ws.source_dir(sp.source) / "motion.json") or {}).get("shots", [])}
         bounds = sorted({sp.start, sp.end, *[s["start"] for s in sc if sp.start < s["start"] < sp.end]})
-        for a, b in zip(bounds, bounds[1:]):
+        for a, b in zip(bounds, bounds[1:], strict=False):
             sid = next((s["id"] for s in sc if s["start"] <= a < s["end"]), None)
             static = mo.get(sid, {}).get("camera", "static") == "static"
             shots.append(((b - a) / sp.speed, static, sp.source, a, b))
