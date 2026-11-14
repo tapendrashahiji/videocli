@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import numpy as np
 import pytest
-from conftest import ff
 
+from conftest import ff
 from videocli.layout import geometry as geo
 
 FONT = Path(__file__).resolve().parents[1] / "src" / "videocli" / "render" / "bakers" / "fonts"
