@@ -36,6 +36,9 @@ Load with `videocli agent-guide --topic compositing`.
 - `videocli edl reframe NAME --aspect 9:16` (vertical), `1:1`, `4:5`; `--mode subject` uses face
   positions when phase-5 face data exists, else a centre crop with a warning.
   `--clip c0002 --x 0.3` moves one shot's crop.
+  Screen recording with a webcam bubble: `--mode stack --face X,Y,W,H [--split 0.62]` puts the
+  screen on top and fills the bottom panel with the face box (fractions of the source frame; read
+  them off a still from `videocli frames`).
 - `videocli edl stabilize NAME c0006 --strength 0.5` (baked once, cached).
 - `videocli export NAME --to otio|fcpxml|edl [-o PATH] [--relative-to DIR]` hands the timeline
   to Resolve, Premiere or Final Cut; `round_check` must be `pass`. CMX 3600 carries the spine only.

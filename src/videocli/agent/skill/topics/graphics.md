@@ -13,6 +13,7 @@ baked into transparent clips and composited above overlays; captions burn last.
   edit; `PHRASE_NOT_FOUND` otherwise.
 - Duration defaults to the template's, never shorter than the reading time.
 - Change: `videocli gfx set NAME x0001 --param title=… --duration 4`; remove: `gfx remove`.
+- Size: `--param scale=0.7` (0.4–2.5) shrinks or grows type and box; the anchor stays put.
 - Look: `videocli gfx preview NAME x0001 --still 0.8` (one frame over the real footage) or `--clip`.
 
 ## Rules
@@ -29,6 +30,9 @@ baked into transparent clips and composited above overlays; captions burn last.
 - `videocli captions style NAME --preset clean|bold-words|karaoke` then
   `videocli render NAME --burn-captions -o out.mp4`. Karaoke highlights each word on its timestamp.
 - Vertical output moves captions up into the safe area automatically.
+- Layout: `videocli captions-style NAME --param max_chars=28 --param lines=1|2 --param position=auto|bottom|top
+  --param margin=0.06 --param size=26 --param accent="#FFD400"`. `position=auto` (default) moves a
+  caption to the top while a lower third is on screen. Check a frame where text and graphics meet.
 
 ## Heavy engines (optional groups)
 

@@ -110,6 +110,12 @@ On failure: `{"ok": false, "error": {"code", "message", "hint", "retryable", "de
 | `INTERRUPTED` (130) | Re-run the same command; renders resume from cache. |
 | Too much removed | Raise `min` in `--cut-silence`, or lower the threshold: `videocli config set silence.threshold_db -40`, then `analyze` and re-`plan --force`. |
 | `NOISY_ROOM` warning | Follow its suggested `config set` command. |
+| `API_KEY_MISSING` | Cloud transcription needs a key that **only the person types**: ask them to run `videocli keys set elevenlabs` in their own terminal. Never ask for the key in chat. |
+| `GROUPS_LOST` warning | A reinstall removed optional groups (e.g. the GPU runtime). Run `videocli setup --restore`. |
+| `LOW_CONFIDENCE_WORDS` | Follow the hint: set `--language`, add `--prompt` with names and jargon, or (with the person's consent, it uploads audio) `analyze FILE --backend elevenlabs --force`. |
+
+- Show the person the edit: `videocli compare OUT.mp4 --edl NAME` (original and edit side by side,
+  CUT badges where material was removed).
 
 ## More topics
 
