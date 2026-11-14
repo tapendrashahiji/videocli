@@ -369,7 +369,7 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `NAME` | text | yes |  |
 | `--aspect` | text |  | 9:16, 1:1, 4:5, 4:3 or 16:9. |
 | `--mode` | text |  | center, subject, or stack (screen on top, face box below). |
-| `--face X,Y,W,H` | text |  | stack: the face/webcam box in the source, fractions 0-1. |
+| `--face X,Y,W,H` | text |  | stack: the face/webcam box in the source, fractions 0-1, or auto (from layout/faces data). |
 | `--split` | number |  | stack: share of the height for the screen (default 0.62). |
 | `--clip CLIP_ID` | text |  | Set one clip's crop centre with --x. |
 | `--x` | number |  | Crop centre, 0 (left) to 1 (right). |
@@ -557,6 +557,7 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `--land` | text |  | start (appear on the word) or end (reveal finishes on it). |
 | `--duration S` | number |  |  |
 | `--layer` | integer |  |  |
+| `--place` | text |  | auto: move off on-screen text and faces (needs layout data); keep: template position. |
 
 ## `videocli gfx lint`
 
@@ -627,6 +628,7 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `--duration` | number |  |  |
 | `--offset` | number |  |  |
 | `--layer` | integer |  |  |
+| `--place` | text |  | auto: move off on-screen text and faces; keep: back to the template position. |
 
 ## `videocli gfx templates`
 
@@ -782,6 +784,22 @@ Exit codes: 0, 2 · supports writes
 Which API keys are set and where (never the key itself)
 
 Exit codes: 0
+
+## `videocli layout`
+
+What is where on screen per stable window: text blocks (OCR), faces, objects and free space
+
+Exit codes: 0, 1, 3, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `FILE` | text | yes |  |
+| `--from T` | time |  |  |
+| `--to T` | time |  |  |
+| `--at T` | time |  | Only the window showing this moment. |
+| `--find TEXT` | text |  | Where and when this text is on screen. |
+| `--lines` | flag |  | Include every OCR line (default: blocks only). |
+| `--limit` | integer |  |  |
 
 ## `videocli log`
 

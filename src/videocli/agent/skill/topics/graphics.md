@@ -13,6 +13,8 @@ baked into transparent clips and composited above overlays; captions burn last.
   edit; `PHRASE_NOT_FOUND` otherwise.
 - Duration defaults to the template's, never shorter than the reading time.
 - Change: `videocli gfx set NAME x0001 --param title=… --duration 4`; remove: `gfx remove`.
+- Placement: with layout data (`analyze FILE --only layout`) graphics move off screen text and
+  faces automatically (`--place auto`); see `agent-guide --topic layout`.
 - Size: `--param scale=0.7` (0.4–2.5) shrinks or grows type and box; the anchor stays put.
 - Look: `videocli gfx preview NAME x0001 --still 0.8` (one frame over the real footage) or `--clip`.
 

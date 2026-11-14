@@ -119,5 +119,6 @@ On failure: `{"ok": false, "error": {"code", "message", "hint", "retryable", "de
 
 ## More topics
 
-`videocli agent-guide --topic NAME` prints a topic. Topics: `core` (this page). Later
-releases add `compositing`, `colour`, `graphics`, `story` and `review`.
+`videocli agent-guide --topic NAME` prints a topic. Topics: `core` (this page), `compositing`,
+`colour`, `graphics`, `layout` (place graphics from on-screen text/face data and validate it),
+`story` and `review`.

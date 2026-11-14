@@ -40,7 +40,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-perception = ["onnxruntime>=1.17"]
+perception = ["onnxruntime>=1.17", "rapidocr>=3.4"]
+objects = ["onnxruntime>=1.17"]
 diarize = []
 music = []
 stems = []
@@ -49,7 +50,7 @@ manim = ["manim>=0.18"]
 html = []
 matte = []
 otio = ["opentimelineio>=0.17"]
-dev = ["pytest>=8", "ruff>=0.5", "pyright>=1.1.370"]
+dev = ["pytest>=8", "ruff>=0.5", "pyright>=1.1.370", "rapidocr>=3.4"]
 
 [project.scripts]
 videocli = "videocli.cli.app:main"
