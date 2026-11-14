@@ -33,7 +33,7 @@ baked into transparent clips and composited above overlays; captions burn last.
   `videocli render NAME --burn-captions -o out.mp4`. Karaoke highlights each word on its timestamp.
 - Vertical output moves captions up into the safe area automatically.
 - Layout: `videocli captions-style NAME --param max_chars=28 --param lines=1|2 --param position=auto|bottom|top
-  --param margin=0.06 --param size=26 --param accent="#FFD400"`. `position=auto` (default) moves a
+  --param margin=0.06 --param size=26 --param accent="#FFD400" --param box=1`. `position=auto` (default) moves a
   caption to the top while a lower third is on screen. Check a frame where text and graphics meet.
 
 ## Heavy engines (optional groups)

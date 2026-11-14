@@ -101,8 +101,13 @@ def build(words: list[dict[str, Any]], *, preset: str, size: tuple[int, int], du
     # Karaoke fills from SecondaryColour (not yet spoken) to PrimaryColour (spoken): accent marks the current word.
     prim = _ass_color(accent) if preset == "karaoke" else _ass_color(primary)
     sec = _ass_color(primary)
-    head.append(f"Style: Default,{fontname},{font_size},{prim},{sec},{_ass_color(outline)},&H80000000,{bold},0,0,0,100,100,0,0,1,"
-                f"{max(2, font_size // 14)},0,{alignment},{margin_h},{margin_h},{margin_v},1")
+    boxed = str(params.get("box", "0")).lower() in ("1", "true", "yes", "on")
+    if boxed:  # a semi-transparent bar behind the text: readable over busy screens
+        border_style, border, back = 3, max(3, font_size // 4), "&H50000000"
+    else:
+        border_style, border, back = 1, max(2, font_size // 14), "&H80000000"
+    head.append(f"Style: Default,{fontname},{font_size},{prim},{sec},{_ass_color(outline)},{back},{bold},0,0,0,100,100,0,0,{border_style},"
+                f"{border},0,{alignment},{margin_h},{margin_h},{margin_v},1")
     head += ["", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
     lines = []
     cues = group_words(words, preset, max_chars, n_lines)
