@@ -46,6 +46,7 @@ def register(app: typer.Typer) -> None:
         profile: Optional[str] = typer.Option(None, "--profile", help="lecture, finishing, artistic or full."),
         with_: Optional[str] = typer.Option(None, "--with", metavar="LIST", help="Extra groups, comma-separated."),
         offline_check: bool = typer.Option(False, "--offline-check", help="Only report what is missing; download nothing."),
+        restore: bool = typer.Option(False, "--restore", help="Reinstall the groups setup added before (after reinstalling videocli)."),
     ) -> None:
         """Install dependency groups and models (asks for a profile on a terminal)."""
         import sys
@@ -53,6 +54,9 @@ def register(app: typer.Typer) -> None:
         from videocli.setup import install, profiles
 
         extra = [g.strip() for g in (with_ or "").split(",") if g.strip()]
+        if restore:
+            extra += profiles.recorded_groups()
+            profile = profile or "lecture"
         asked = False
         if profile is None and not extra:
             if not state.json and sys.stdin.isatty() and not offline_check and not state.dry_run:
@@ -67,6 +71,7 @@ def register(app: typer.Typer) -> None:
             results = [{**a, "result": "planned" if a.get("status") != "blocked" else "blocked"} for a in actions]
         else:
             results = install.execute(actions, model)
+            profiles.record_groups(groups)
         for r in results:
             if r.get("result") == "blocked":
                 warnings.append({"code": "SETUP_BLOCKED", "message": f"{r.get('message')} {r.get('hint') or ''}".strip()})
@@ -84,10 +89,45 @@ def register(app: typer.Typer) -> None:
                 "actions": [{k: v for k, v in r.items() if k != "command"} | ({"command": " ".join(r["command"])} if r.get("command") else {}) for r in results],
                 "offline_check": offline_check,
                 "dry_run": state.dry_run,
+                "reinstall_command": profiles.reinstall_command(),
             },
             warnings=warnings,
             next=nxt,
         )
+
+    # ------------------------------------------------------------------ keys
+    keys_app = sub_app("keys", "API keys for optional cloud services (typed by a person; never shown).")
+    app.add_typer(keys_app)
+
+    @command(keys_app, "status", group="keys", summary="Which API keys are set and where (never the key itself)", exit_codes=(0,))
+    def keys_status() -> None:
+        from videocli.setup import keys
+
+        rows = keys.status()
+        nxt = [f"videocli keys set {r['service']}   # a person runs this; input is hidden" for r in rows if not r["set"]]
+        emit({"keys": rows}, next=nxt)
+
+    @formatter("keys status")
+    def _fmt_keys(d: dict[str, Any]) -> None:
+        c = console()
+        for r in d["keys"]:
+            where = f"set ({r['source']})" if r["set"] else "not set"
+            c.print(f"  {r['service']:12} {where:20} env {r['env']}")
+
+    @command(keys_app, "set", group="keys", summary="Type an API key at a terminal (hidden) and store it in the project .env (gitignored) or --user", writes=True, dry_run=False, exit_codes=(0, 2))
+    def keys_set(service: str = typer.Argument(..., help="elevenlabs"),
+                 user: bool = typer.Option(False, "--user", help="Store for every project (user config folder) instead of this project.")) -> None:
+        """Ask for an API key with hidden input. Refuses when not run by a person at a terminal."""
+        from videocli.setup import keys
+
+        res = keys.set_interactive(service, "user" if user else "project")
+        emit(res, next=[f"videocli analyze FILE --backend {service} --force"])
+
+    @command(keys_app, "remove", group="keys", summary="Delete a stored API key", writes=True, dry_run=False, exit_codes=(0, 2))
+    def keys_remove(service: str = typer.Argument(...), user: bool = typer.Option(False, "--user")) -> None:
+        from videocli.setup import keys
+
+        emit(keys.remove(service, "user" if user else "project"))
 
     # ------------------------------------------------------------------ config
     cfg = sub_app("config", "Show or change settings.")

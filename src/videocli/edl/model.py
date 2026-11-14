@@ -211,8 +211,11 @@ class Output(_Base):
 
 class Reframe(_Base):
     aspect: Literal["16:9", "9:16", "1:1", "4:5", "4:3"] = "9:16"
-    mode: Literal["center", "subject"] = "center"
+    mode: Literal["center", "subject", "stack"] = "center"
     crops: dict[str, float] = Field(default_factory=dict, description="Per-clip horizontal crop centre 0-1 (subject mode)")
+    face: tuple[float, float, float, float] | None = Field(
+        default=None, description="stack mode: the face (webcam bubble) box in the source, as fractions x,y,w,h")
+    split: float = Field(default=0.62, ge=0.3, le=0.85, description="stack mode: share of the output height for the screen (top)")
 
 
 class Sound(_Base):

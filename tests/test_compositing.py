@@ -302,3 +302,57 @@ def test_export_round_check(cli, tones, counter_clip, tmp_path, fmt):
         assert len(tl.tracks) == 2 and tl.tracks[0].duration().to_seconds() == pytest.approx(3.6, abs=0.05)
     else:
         assert any(w["code"] == "EXPORT_PARTIAL" for w in env["warnings"])
+
+
+@pytest.fixture(scope="session")
+def bubble_clip(media_dir):
+    """Blue 'screen' with a red 'webcam bubble' in the lower-right corner (x .78-.98, y .58-.96)."""
+    p = media_dir / "bubble.mp4"
+    if not p.exists():
+        ff("-f", "lavfi", "-i", "color=c=blue:s=640x360:r=25:d=3", "-f", "lavfi", "-i", "sine=f=300:sample_rate=48000:d=3",
+           "-vf", "drawbox=x=499:y=209:w=128:h=137:color=red:t=fill",
+           "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(p))
+    return p
+
+
+def _mid_frame(path):
+    import numpy as np
+
+    info = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(path)], capture_output=True, text=True).stdout)
+    v = next(s for s in info["streams"] if s["codec_type"] == "video")
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-ss", "1", "-i", str(path), "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                         capture_output=True, check=True).stdout
+    return np.frombuffer(raw, np.uint8).reshape(v["height"], v["width"], 3).astype(int), (v["width"], v["height"])
+
+
+def test_reframe_stack_screen_over_face(cli, bubble_clip, tmp_path):
+    cli.ok("probe", str(bubble_clip))
+    cli.ok("plan", str(bubble_clip), "-o", "stk", "--keep-only", "0-2", "--no-snap")
+    code, env = cli("edl", "reframe", "stk", "--aspect", "9:16", "--mode", "stack")
+    assert code == 2 and "--face" in env["error"]["message"]
+    d = cli.ok("edl", "reframe", "stk", "--aspect", "9:16", "--mode", "stack", "--face", "0.78,0.58,0.2,0.38", "--split", "0.6")
+    assert d["mode"] == "stack" and d["resolution"] == [360, 640] and d["split"] == 0.6
+    cli.ok("edl", "reframe", "stk", "--aspect", "9:16", "--clip", "c0001", "--x", "0.3")  # screen crop moves left
+    out = tmp_path / "stk.mp4"
+    cli.ok("render", "stk", "-o", str(out))
+    fr, size = _mid_frame(out)
+    assert size == (360, 640)
+    top, bot = fr[: int(640 * 0.6) - 4], fr[int(640 * 0.6) + 4:]
+    is_red = lambda a: ((a[..., 0] > 150) & (a[..., 2] < 100)).mean()  # noqa: E731
+    is_blue = lambda a: ((a[..., 2] > 150) & (a[..., 0] < 100)).mean()  # noqa: E731
+    assert is_blue(top) > 0.95  # x=0.3 crop keeps the bubble out of the screen panel
+    assert is_red(bot) > 0.95  # the face panel is filled by the bubble
+
+    # composite path (a graphic on top) renders the same layout
+    cli.ok("gfx", "add", "stk", "-t", "lower-third", "--param", "title=Hi", "--on", "c0001", "--duration", "1.5")
+    out2 = tmp_path / "stk2.mp4"
+    cli.ok("render", "stk", "-o", str(out2))
+    fr2, size2 = _mid_frame(out2)
+    assert size2 == (360, 640) and is_red(fr2[int(640 * 0.6) + 4:]) > 0.5
+
+
+def test_reframe_stack_needs_tall_aspect(cli, bubble_clip):
+    cli.ok("probe", str(bubble_clip))
+    cli.ok("plan", str(bubble_clip), "-o", "stw", "--keep-only", "0-2")
+    code, env = cli("edl", "reframe", "stw", "--aspect", "1:1", "--mode", "stack", "--face", "0.78,0.58,0.2,0.38")
+    assert code == 2 and "tall" in env["error"]["message"]

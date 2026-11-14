@@ -40,13 +40,34 @@ def timescale(rate: str) -> int:
 ASPECTS = {"16:9": 16 / 9, "9:16": 9 / 16, "1:1": 1.0, "4:5": 0.8, "4:3": 4 / 3}
 
 
+_STACK_IDS = __import__("itertools").count()
+
+
+def stack_filter(w: int, h: int, cx: float, spec: dict) -> str:
+    """Screen on top, face box below, as one filtergraph piece (one input, one output)."""
+    fx, fy, fw, fh = (float(v) for v in spec["face"])
+    ht = max(2, int(round(h * float(spec["split"]) / 2)) * 2)
+    hb = h - ht
+    art, arb = w / ht, w / hb
+    u = next(_STACK_IDS)
+    top = (f"crop=w='oh*{art:.6f}':h='min(ih,iw/{art:.6f})':x='(iw-ow)*{cx:.4f}':y='(ih-oh)/2',"
+           f"scale={w}:{ht}:flags=bicubic")
+    # Fill the bottom panel from inside the face box (cover), centred on the face, kept inside the frame.
+    bot = (f"crop=w='oh*{arb:.6f}':h='min(ih,min(iw/{arb:.6f},min({fh:.4f}*ih,{fw:.4f}*iw/{arb:.6f})))'"
+           f":x='clip({fx + fw / 2:.4f}*iw-ow/2,0,iw-ow)':y='clip({fy + fh / 2:.4f}*ih-oh/2,0,ih-oh)',"
+           f"scale={w}:{hb}:flags=bicubic")
+    return f"split=2[st{u}][sf{u}];[st{u}]{top}[stt{u}];[sf{u}]{bot}[sff{u}];[stt{u}][sff{u}]vstack=inputs=2"
+
+
 def video_chain(speed: float, rate: str, w: int, h: int, pix_fmt: str, *, crop: list | None = None, hold: bool = False,
                 pre: list[str] | None = None, post: list[str] | None = None) -> list[str]:
     """Conform one picture input: (input transform), speed, rate, (hold), crop or fit, (grade), format, pad frames."""
     vf = [*(pre or []), f"setpts=(PTS-STARTPTS)/{speed:.6f}", f"fps={rate}"]
     if hold:
         vf.append("trim=end_frame=1")
-    if crop:
+    if crop and len(crop) > 2 and crop[2]:
+        vf.append(stack_filter(w, h, float(crop[1] if crop[1] is not None else 0.5), crop[2]))
+    elif crop:
         ar = ASPECTS[crop[0]]
         cx = float(crop[1])
         vf += [

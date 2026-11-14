@@ -30,6 +30,9 @@ ERROR_CODES: dict[str, str] = {
     "FFMPEG_NOT_FOUND": "No usable ffmpeg or ffprobe was found",
     "FFMPEG_TOO_OLD": "ffmpeg is older than the minimum version or lacks a required feature",
     "MODEL_NOT_FOUND": "A required model is not downloaded",
+    "API_KEY_MISSING": "A cloud service needs an API key that a person must enter with videocli keys set",
+    "NEEDS_TERMINAL": "This step must be done by a person at a terminal (for example typing an API key)",
+    "API_REQUEST_FAILED": "A cloud service request failed (network, quota or a rejected key)",
     "FEATURE_NOT_INSTALLED": "An optional dependency group is not installed",
     # 4: bad input
     "FILE_NOT_FOUND": "An input file does not exist",

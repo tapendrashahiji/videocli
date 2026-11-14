@@ -137,6 +137,13 @@ def _media(edl: EDL, clip: Clip, bakes: dict[str, Node]) -> tuple[dict[str, Any]
     return {}, [], {"path": edl.sources[clip.source].path}
 
 
+def crop_spec(crop: Any, cx: float | None) -> list:
+    """Crop parameters for a picture input: [aspect, x] or, stacked, [aspect, x, {face, split}]."""
+    if crop.mode == "stack" and crop.face:
+        return [crop.aspect, cx, {"face": [round(v, 4) for v in crop.face], "split": round(crop.split, 4)}]
+    return [crop.aspect, cx]
+
+
 def compile_timeline(
     edl: EDL, preset: presets.Preset, *, crf: int, x264_preset: str, normalize: bool = True,
     labels: dict[str, str] | None = None, speech: list[tuple[float, float]] | None = None,
@@ -248,7 +255,7 @@ def compile_timeline(
                 params["hold"] = True
             cx = crop_x(p.clip)
             if cx is not None:
-                params["crop"] = [crop.aspect, cx]  # type: ignore[union-attr]
+                params["crop"] = crop_spec(crop, cx)
             params.update(mp)
             if labels and p.clip.id in labels:
                 params["label"] = labels[p.clip.id]
@@ -264,7 +271,7 @@ def compile_timeline(
             src = edl.sources[pp.clip.source]
             mp, mins, ex = _media(edl, pp.clip, bakes)
             b = {"source": pp.clip.source, "start": t, "speed": u.speed, "has_video": src.has_video, "hold": u.freeze,
-                 "crop": ([crop.aspect, crop_x(pp.clip)] if crop is not None else None), **mp}
+                 "crop": (crop_spec(crop, crop_x(pp.clip)) if crop is not None else None), **mp}
             pre, post, gk = grade(pp.clip.source, pp.clip.grade, f"{len(chunks)}b{len(bases)}")
             if gk:
                 b["grade"] = gk

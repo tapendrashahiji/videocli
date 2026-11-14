@@ -231,3 +231,71 @@ def test_caption_layout_params_validated(cli, av_clip):
     assert code == 2
     d = cli.ok("captions-style", "cl", "--preset", "karaoke", "--param", "max_chars=32", "--param", "lines=1")
     assert d["params"] == {"max_chars": "32", "lines": "1"}
+
+
+def test_caption_two_lines_break_balanced():
+    import re
+
+    from videocli.graphics.captions_ass import break_index, build
+
+    assert break_index(["short"], 18, 2) is None
+    assert break_index(["mark", "le", "help", "and", "d", "ra", "yu"], 18, 1) is None
+    i = break_index(["mark", "le", "help,", "and", "d", "ra", "yu,", "and", "j", "k,"], 18, 2)
+    assert i is not None
+    words = [{"start": i * 0.3, "end": i * 0.3 + 0.25, "word": w} for i, w in enumerate(["mark", "le", "help,", "and", "d", "ra", "yu,", "and", "j", "k,"])]
+    for preset in ("karaoke", "bold-words", "clean"):
+        ass = build(words, preset=preset, size=(360, 640), duration=10, brand=tp.Brand(), params={"max_chars": "18", "lines": "2"})
+        lines = [x.split(",", 9)[9] for x in ass.splitlines() if x.startswith("Dialogue:")]
+        for text in lines:
+            for part in re.sub(r"\{[^}]*\}", "", text).split("\\N"):
+                assert len(part.strip()) <= 18, (preset, text)
+        if preset != "bold-words":  # bold-words shows 3 words at a time
+            assert any("\\N" in t for t in lines), preset
+
+
+def test_scale_param_shrinks_lower_third():
+    from videocli.graphics.titles import layout
+
+    t = tp.get(None, "lower-third")
+
+    def box(scale):
+        p = tp.resolve_params(t, {"title": "Shift + ?", "subtitle": "Show all shortcuts", "scale": scale}, tp.Brand())
+        b = layout(t, p, tp.Brand(), 640, 360).box
+        return b[2] - b[0], b[3] - b[1], b[0]
+
+    w1, h1, x1 = box(1.0)
+    w6, h6, x6 = box(0.6)
+    assert w6 < w1 * 0.7 and h6 < h1 * 0.7 and x6 == x1  # smaller, same anchor
+    from videocli.core.errors import UsageError
+
+    with pytest.raises(UsageError):
+        tp.resolve_params(t, {"title": "x", "scale": 5}, tp.Brand())
+
+
+def test_captions_auto_move_to_top_over_lower_third():
+    from videocli.graphics.captions_ass import build
+
+    words = [{"start": i * 0.5, "end": i * 0.5 + 0.4, "word": f"w{i}."} for i in range(12)]
+    ass = build(words, preset="karaoke", size=(640, 360), duration=10, brand=tp.Brand(), avoid=[(2.0, 4.0)])
+    dl = [x for x in ass.splitlines() if x.startswith("Dialogue:")]
+    top = [x for x in dl if "{\\an8}" in x]
+    assert top and len(top) < len(dl)
+    from videocli.graphics.captions_ass import cue_times
+
+    for x in dl:
+        a, b = cue_times(x + "\n")[0]
+        assert ("{\\an8}" in x) == (a < 4.0 and b > 2.0)
+    fixed = build(words, preset="karaoke", size=(640, 360), duration=10, brand=tp.Brand(), avoid=[(2.0, 4.0)], params={"position": "bottom"})
+    assert "{\\an8}" not in fixed
+
+
+def test_bottom_graphics_from_edl(cli, av_clip):
+    from videocli.core.workspace import Workspace
+    from videocli.edl import io
+    from videocli.graphics.captions_ass import bottom_graphics
+
+    _edl_with_transcript(cli, av_clip, "bg")
+    cli.ok("gfx", "add", "bg", "-t", "lower-third", "--param", "title=Hi", "--at-word", "binary search", "--duration", "2")
+    cli.ok("gfx", "add", "bg", "-t", "chapter-marker", "--param", "title=Top", "--at-word", "binary search")
+    rngs = bottom_graphics(io.load(Workspace.open(), "bg"))
+    assert len(rngs) == 1 and rngs[0][1] - rngs[0][0] == pytest.approx(2.0)

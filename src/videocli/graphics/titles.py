@@ -95,6 +95,7 @@ def _text_block(draw: ImageDraw.ImageDraw, xy: tuple[int, int], lines: list[str]
 def layout(t: Template, p: dict[str, Any], brand: Brand, W: int, H: int, *, chars: int | None = None) -> Layout:
     design = t.design or t.name
     S = min(W, H)
+    Z = S * float(p.get("scale") or 1.0)  # size of type, padding and boxes; positions stay on S
     m = int(round(brand.safe_margin * S)) if t.placement.get("safe_area", True) else 0
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
@@ -105,28 +106,28 @@ def layout(t: Template, p: dict[str, Any], brand: Brand, W: int, H: int, *, char
         return s if chars is None else s[:chars]
 
     if design in ("lower-third", "chapter-marker"):
-        big = _font(brand, S * (0.055 if design == "lower-third" else 0.045), True, p.get("title", ""))
-        small = _font(brand, S * 0.034, False, p.get("subtitle", ""))
+        big = _font(brand, Z * (0.055 if design == "lower-third" else 0.045), True, p.get("title", ""))
+        small = _font(brand, Z * 0.034, False, p.get("subtitle", ""))
         maxw = int(W * 0.6)
         title = (f"{p['number']}  " if p.get("number") else "") + p.get("title", "")
         tl = wrap(clip_text(title), big, maxw)
         sl = wrap(clip_text(p.get("subtitle", "")), small, maxw) if p.get("subtitle") else []
         tw = max([big.getlength(x) for x in tl] + [small.getlength(x) for x in sl] + [1])
         a, dsc = big.getmetrics()
-        th = int((a + dsc) * 1.2) * len(tl) + (int(sum(small.getmetrics()) * 1.2) * len(sl) + int(S * 0.01) if sl else 0)
-        pad = int(S * 0.02)
-        bar = max(3, int(S * 0.008))
+        th = int((a + dsc) * 1.2) * len(tl) + (int(sum(small.getmetrics()) * 1.2) * len(sl) + int(Z * 0.01) if sl else 0)
+        pad = int(Z * 0.02)
+        bar = max(3, int(Z * 0.008))
         bw, bh = int(tw + 2 * pad + bar), int(th + 2 * pad)
         if design == "lower-third":
             x0, y0 = m, H - m - bh - int(S * 0.04)
         else:
             x0, y0 = m, m
-        d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=int(S * 0.008), fill=hex_rgba(brand.colors.get("primary", "#111111"), 200))
+        d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=int(Z * 0.008), fill=hex_rgba(brand.colors.get("primary", "#111111"), 200))
         d.rectangle((x0, y0, x0 + bar, y0 + bh), fill=hex_rgba(accent))
         y = y0 + pad
         y += _text_block(d, (x0 + bar + pad, y), tl, big, hex_rgba(white))
         if sl:
-            _text_block(d, (x0 + bar + pad, y + int(S * 0.01)), sl, small, hex_rgba(white, 230))
+            _text_block(d, (x0 + bar + pad, y + int(Z * 0.01)), sl, small, hex_rgba(white, 230))
         overflow = tw > maxw + 1 or len(tl) > 2
         return Layout(img, (x0, y0, x0 + bw, y0 + bh), title + " " + p.get("subtitle", ""), overflow, white,
                       {"slide_from": -(x0 + bw)})
@@ -137,23 +138,23 @@ def layout(t: Template, p: dict[str, Any], brand: Brand, W: int, H: int, *, char
             dim = float(p.get("dim") or 0.0)
             d.rectangle((0, 0, W, H), fill=hex_rgba("#000000", int(255 * dim)) if dim > 0 else hex_rgba(bg))
         text = p.get("title") or p.get("text", "")
-        big = _font(brand, S * (0.085 if design != "quote" else 0.055), design != "quote", text)
+        big = _font(brand, Z * (0.085 if design != "quote" else 0.055), design != "quote", text)
         maxw = int(W - 2 * m - S * 0.1)
         body = f"“{clip_text(text)}”" if design == "quote" else clip_text(text)
         tl = wrap(body, big, maxw)
         lh = int(sum(big.getmetrics()) * 1.2)
         sub = p.get("subtitle") or (f"— {p['author']}" if p.get("author") else "")
-        small = _font(brand, S * 0.04, False, sub)
+        small = _font(brand, Z * 0.04, False, sub)
         sl = wrap(clip_text(sub), small, maxw) if sub else []
         slh = int(sum(small.getmetrics()) * 1.2)
-        total = lh * len(tl) + (slh * len(sl) + int(S * 0.03) if sl else 0)
+        total = lh * len(tl) + (slh * len(sl) + int(Z * 0.03) if sl else 0)
         y = (H - total) // 2
         y0 = y
         for ln in tl:
             d.text((W // 2, y), ln, font=big, fill=hex_rgba(white), anchor="ma")
             y += lh
         if sl:
-            y += int(S * 0.03)
+            y += int(Z * 0.03)
             for ln in sl:
                 d.text((W // 2, y), ln, font=small, fill=hex_rgba(white, 220), anchor="ma")
                 y += slh
@@ -162,25 +163,25 @@ def layout(t: Template, p: dict[str, Any], brand: Brand, W: int, H: int, *, char
         return Layout(img, box, text + " " + sub, len(tl) > 4, white)
 
     if design == "callout":
-        f = _font(brand, S * 0.04, True, p.get("text", ""))
+        f = _font(brand, Z * 0.04, True, p.get("text", ""))
         tl = wrap(clip_text(p.get("text", "")), f, int(W * 0.4))
-        pad = int(S * 0.015)
+        pad = int(Z * 0.015)
         tw = max(f.getlength(x) for x in tl)
         lh = int(sum(f.getmetrics()) * 1.2)
         cx, cy = int(float(p.get("x", 0.5)) * W), int(float(p.get("y", 0.4)) * H)
         bw, bh = int(tw + 2 * pad), lh * len(tl) + 2 * pad
         x0 = min(max(m, cx - bw // 2), W - m - bw)
         y0 = min(max(m, cy - bh - int(S * 0.05)), H - m - bh)
-        r = int(S * 0.012)
+        r = int(Z * 0.012)
         d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=hex_rgba(accent))
-        d.line((cx, cy, x0 + bw // 2, y0 + bh), fill=hex_rgba(accent), width=max(2, int(S * 0.004)))
-        d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=int(S * 0.01), fill=hex_rgba(accent))
+        d.line((cx, cy, x0 + bw // 2, y0 + bh), fill=hex_rgba(accent), width=max(2, int(Z * 0.004)))
+        d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=int(Z * 0.01), fill=hex_rgba(accent))
         _text_block(d, (x0 + pad, y0 + pad), tl, f, hex_rgba(white))
         return Layout(img, (x0, y0, x0 + bw, max(y0 + bh, cy + r)), p.get("text", ""), len(tl) > 3, white, {"origin": (cx, cy)})
 
     if design == "counter":
-        f = _font(brand, S * 0.14, True, "0")
-        lab = _font(brand, S * 0.04, False, p.get("label", ""))
+        f = _font(brand, Z * 0.14, True, "0")
+        lab = _font(brand, Z * 0.04, False, p.get("label", ""))
         return Layout(img, (int(W * 0.25), int(H * 0.35), int(W * 0.75), int(H * 0.65)), p.get("label", ""), False, white,
                       {"font": f, "label_font": lab})
 
@@ -190,7 +191,7 @@ def layout(t: Template, p: dict[str, Any], brand: Brand, W: int, H: int, *, char
 
     if design == "logo-bug":
         logo = Image.open(p["logo"]).convert("RGBA")
-        lh = int(S * 0.09)
+        lh = int(Z * 0.09)
         lw = int(logo.width * lh / logo.height)
         logo = logo.resize((lw, lh), Image.Resampling.LANCZOS)
         corner = p.get("corner", "tr")

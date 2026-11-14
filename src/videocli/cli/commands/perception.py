@@ -102,6 +102,7 @@ def register(app: typer.Typer) -> None:
         language: Optional[str] = typer.Option(None, "--language", metavar="CODE", help="Language code; default auto."),
         audio_stream: int = typer.Option(0, "--audio-stream", metavar="N", min=0, help="Audio stream index."),
         prompt: Optional[str] = typer.Option(None, "--prompt", help="Initial prompt for the speech model (names, jargon)."),
+        backend: Optional[str] = typer.Option(None, "--backend", help="whisper (local, default) or elevenlabs (cloud: uploads the audio; needs videocli keys set elevenlabs)."),
         profile: Optional[str] = typer.Option(None, "--profile", help="lecture (default set), artistic or full (adds shots, motion, faces, prosody, music, …)."),
     ) -> None:
         """Analyze a source: facts the agent can read without rendering."""
@@ -127,7 +128,7 @@ def register(app: typer.Typer) -> None:
             if not check_group("diarize", deep=False).ok:
                 names = [n for n in names if n != "diarize"]
         explicit = set(_csv(only))
-        options = {"model": model, "language": language, "audio_stream": audio_stream, "initial_prompt": prompt}
+        options = {"model": model, "language": language, "audio_stream": audio_stream, "initial_prompt": prompt, "backend": backend}
 
         if state.estimate or state.dry_run:
             from videocli.media import probe as probemod

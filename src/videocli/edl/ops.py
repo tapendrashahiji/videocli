@@ -503,9 +503,23 @@ def speed(edl: EDL, clip_id: str, *, rate: float | None = None, ramp: str | None
     return {"clip": clip_id, "out_duration": {"before": ms(before), "after": ms(c2.out_duration)}}
 
 
-def reframe(edl: EDL, aspect: str, mode: str = "center", clip_id: str | None = None, x: float | None = None) -> dict[str, Any]:
+def reframe(edl: EDL, aspect: str, mode: str = "center", clip_id: str | None = None, x: float | None = None,
+            face: tuple[float, float, float, float] | None = None, split: float | None = None) -> dict[str, Any]:
     if aspect not in ASPECT_RATIOS:
         raise UsageError("BAD_ARGUMENT", f"--aspect must be one of {', '.join(ASPECT_RATIOS)}.")
+    if mode not in ("center", "subject", "stack"):
+        raise UsageError("BAD_ARGUMENT", "--mode must be center, subject or stack.")
+    if mode == "stack" and clip_id is None:
+        aw_, ah_ = ASPECT_RATIOS[aspect]
+        if ah_ <= aw_:
+            raise UsageError("BAD_ARGUMENT", "--mode stack needs a tall output: --aspect 9:16 or 4:5.")
+        face = face or (edl.reframe.face if edl.reframe else None)
+        if face is None:
+            raise UsageError("BAD_ARGUMENT", "--mode stack needs the face box: --face X,Y,W,H (fractions of the frame).",
+                             hint="Find it on a still: videocli frames FILE --at 10, then e.g. --face 0.80,0.60,0.18,0.33")
+        fx, fy, fw, fh = face
+        if not (0 <= fx < 1 and 0 <= fy < 1 and 0 < fw <= 1 and 0 < fh <= 1 and fx + fw <= 1.001 and fy + fh <= 1.001):
+            raise UsageError("BAD_ARGUMENT", "--face must be X,Y,W,H fractions inside the frame (0-1).")
     if clip_id is not None:
         get_clip(edl, clip_id)
         if edl.reframe is None:
@@ -520,9 +534,15 @@ def reframe(edl: EDL, aspect: str, mode: str = "center", clip_id: str | None = N
         w, h = int(round(short * aw / ah / 2)) * 2, short
     else:
         w, h = short, int(round(short * ah / aw / 2)) * 2
-    edl.reframe = Reframe(aspect=aspect, mode=mode, crops=edl.reframe.crops if edl.reframe else {})  # type: ignore[arg-type]
+    old = edl.reframe
+    edl.reframe = Reframe(aspect=aspect, mode=mode, crops=old.crops if old else {},  # type: ignore[arg-type]
+                          face=face if mode == "stack" else None,
+                          split=split if split is not None else (old.split if old else 0.62))
     edl.resolution = (w, h)
-    return {"aspect": aspect, "mode": mode, "resolution": [w, h]}
+    out: dict[str, Any] = {"aspect": aspect, "mode": mode, "resolution": [w, h]}
+    if mode == "stack":
+        out.update(face=list(face or ()), split=edl.reframe.split)
+    return out
 
 
 def stabilize(edl: EDL, clip_id: str, strength: float) -> dict[str, Any]:

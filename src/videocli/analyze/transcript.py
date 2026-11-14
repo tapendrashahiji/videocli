@@ -151,8 +151,31 @@ def _is_cuda_runtime_error(exc: BaseException) -> bool:
     return any(k in msg for k in ("libcublas", "libcudnn", "cudnn", "cuda", "cublas", "libcudart"))
 
 
-#: Factory for the transcription backend; tests replace it.
+#: Factory for the local transcription backend; tests replace it.
 BACKEND: Callable[[Any], Transcriber] = FasterWhisper
+
+WHISPER_LADDER = ("tiny", "base", "small", "medium", "large-v3")
+WHISPER_PREFIXES = ("tiny", "base", "small", "medium", "large", "distil", "turbo")
+
+
+def low_confidence_hint(model: str, backend: str) -> str:
+    """What to try next when many words are uncertain; never suggests a smaller model."""
+    cloud = "or try cloud transcription: videocli keys set elevenlabs, then videocli analyze FILE --backend elevenlabs --force"
+    if backend == "elevenlabs":
+        return "check the language (--language CODE); mixed-language speech is often transcribed with lower confidence."
+    name = model.split("/")[-1].replace(".en", "")
+    if name in WHISPER_LADDER[:-1]:
+        bigger = WHISPER_LADDER[WHISPER_LADDER.index(name) + 1]
+        return f"check the language setting (--language CODE) or try a larger model (--model {bigger})."
+    return f"you are on the largest local model; set --language, add names and jargon with --prompt, {cloud}."
+
+
+def make_backend(name: str, settings: Any) -> Transcriber:
+    if name == "elevenlabs":
+        from videocli.analyze.elevenlabs import ElevenLabs
+
+        return ElevenLabs(settings)
+    return BACKEND(settings)
 
 
 def clean_segments(raw: list[dict[str, Any]], duration: float) -> list[dict[str, Any]]:
@@ -197,13 +220,34 @@ class TranscriptAnalyzer:
 
     def params(self, ctx: RunContext) -> dict[str, Any]:
         s = ctx.settings
-        return {
+        backend = ctx.options.get("backend") or s.transcript__backend
+        p: dict[str, Any] = {
             "model": ctx.options.get("model") or s.transcript__model,
             "language": ctx.options.get("language") or s.transcript__language or None,
             "initial_prompt": ctx.options.get("initial_prompt") or None,
         }
+        if backend != "whisper":  # only added when set, so existing whisper transcripts keep their cache keys
+            p["backend"] = backend
+            if backend == "elevenlabs":
+                asked = str(ctx.options.get("model") or "")
+                p["model"] = asked if asked and not asked.startswith(WHISPER_PREFIXES) else s.transcript__elevenlabs_model
+        return p
 
     def available(self, ctx: RunContext) -> Availability:
+        from videocli.core.errors import UsageError
+
+        backend = self.params(ctx).get("backend", "whisper")
+        if backend not in ("whisper", "elevenlabs"):
+            return Availability(False, UsageError("BAD_ARGUMENT", f"Unknown transcript backend '{backend}'.", hint="Use whisper or elevenlabs."))
+        if backend == "elevenlabs":
+            from videocli.setup import keys
+
+            if not keys.get("elevenlabs"):
+                return Availability(False, DependencyError(
+                    "API_KEY_MISSING", "ElevenLabs transcription needs an API key.",
+                    hint="A person runs (the key is typed, never shown): videocli keys set elevenlabs",
+                ))
+            return Availability.yes()
         if BACKEND is not FasterWhisper:
             return Availability.yes()
         from videocli.setup.profiles import module_present, whisper_model_path
@@ -225,11 +269,18 @@ class TranscriptAnalyzer:
     def run(self, src: Source, params: dict[str, Any], ctx: RunContext) -> Path:
         wav = ctx.ws.source_dir(src.id) / "audio.wav"
         duration = float(ctx.probe.duration if ctx.probe else 0.0)
-        backend = BACKEND(ctx.settings)
+        backend_name = params.get("backend", "whisper")
+        backend = make_backend(backend_name, ctx.settings)
         raw = backend.transcribe(
             wav, model=params["model"], language=params["language"], initial_prompt=params["initial_prompt"],
             on_progress=lambda f: progress.update(f),
         )
+        if backend_name == "whisper":
+            from videocli.setup.profiles import lost_groups
+
+            if "gpu" in lost_groups():
+                ctx.warn("GROUPS_LOST", "The GPU runtime was installed before but is missing (reinstalling videocli removes it); "
+                         "transcription may run on the CPU. Restore it with: videocli setup --restore")
         if getattr(backend, "fallback", None):
             ctx.warn("GPU_FALLBACK", backend.fallback + ". Install the CUDA 12 libraries to use the GPU, or set: videocli config set transcript.device cpu")
         segments = clean_segments(raw.get("segments", []), duration)
@@ -239,7 +290,7 @@ class TranscriptAnalyzer:
         if words and low_share > float(ctx.settings.transcript__low_confidence_share):
             ctx.warn(
                 "LOW_CONFIDENCE_WORDS",
-                f"{low_share:.0%} of words have probability below {low}; check the language setting or try a larger model (--model medium).",
+                f"{low_share:.0%} of words have probability below {low}; {low_confidence_hint(params['model'], backend_name)}",
             )
         out = ctx.artifact_path(src, self.name)
         clean = {k: v for k, v in params.items() if not k.startswith("_")}
@@ -250,6 +301,7 @@ class TranscriptAnalyzer:
                 "language": raw.get("language"),
                 "language_probability": round(float(raw.get("language_probability") or 0.0), 3),
                 "model": params["model"],
+                "backend": backend_name,
                 "duration": duration,
                 "word_count": len(words),
                 "low_confidence_share": round(low_share, 3),
