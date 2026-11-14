@@ -63,10 +63,13 @@ class BarSink(Sink):
                 if now - self.last < 0.1 and ev.get("fraction", 0) < 1:
                     return
                 self.last = now
-                frac = max(0.0, min(1.0, ev.get("fraction") or 0.0))
+                msg = f" {ev['message']}" if ev.get("message") else ""
+                if ev.get("fraction") is None:  # size unknown: show activity, not a fake bar
+                    self._line(f"{ev['step']} …{msg}")
+                    return
+                frac = max(0.0, min(1.0, ev["fraction"]))
                 width = 28
                 filled = int(frac * width)
-                msg = f" {ev['message']}" if ev.get("message") else ""
                 self._line(f"{ev['step']} [{'#' * filled}{'.' * (width - filled)}] {frac * 100:5.1f}%{msg}")
             elif kind == "finished":
                 self._line(f"{ev['step']} done in {ev.get('seconds', 0):.1f}s\n")
@@ -135,10 +138,11 @@ def step(name: str) -> Callable[[F], F]:
     return deco
 
 
-def update(fraction: float | None = None, message: str | None = None, step_name: str | None = None) -> None:
+def update(fraction: float | None = None, message: str | None = None, step_name: str | None = None, **fields: Any) -> None:
+    """Emit a progress event. Extra ``fields`` (e.g. ``bytes_done``) go into JSON events as-is."""
     stack = _stack()
     name = step_name or (stack[-1] if stack else "work")
-    ev: dict[str, Any] = {"event": "progress", "step": name}
+    ev: dict[str, Any] = {"event": "progress", "step": name, **fields}
     if fraction is not None:
         ev["fraction"] = round(max(0.0, min(1.0, fraction)), 4)
     if message:

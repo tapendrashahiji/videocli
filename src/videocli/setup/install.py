@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import shutil
-import subprocess
 import sys
 from typing import Any
 
 from videocli.core import progress
 from videocli.core.errors import DependencyError, RuntimeFailure, VideoCliError
-from videocli.setup import profiles, provision
+from videocli.setup import live, profiles, provision
 
 
 def _pip_command(packages: list[str]) -> list[str]:
@@ -74,9 +72,9 @@ def execute(actions: list[dict[str, Any]], model: str) -> list[dict[str, Any]]:
                 if not cmd:
                     results.append({**act, "result": "blocked", "message": "npm not found"})
                     continue
-                proc = subprocess.run(cmd, capture_output=True, text=True, check=False, env={**os.environ})
-                if proc.returncode != 0:
-                    tail = (proc.stderr or proc.stdout).strip().splitlines()[-1:] or ["unknown error"]
+                code, lines = live.run_streaming(cmd)
+                if code != 0:
+                    tail = lines[-1:] or ["unknown error"]
                     raise RuntimeFailure(
                         "INSTALL_FAILED",
                         f"Installing group '{act['group']}' failed: {tail[0]}",
