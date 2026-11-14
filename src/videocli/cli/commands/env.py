@@ -46,6 +46,7 @@ def register(app: typer.Typer) -> None:
         profile: Optional[str] = typer.Option(None, "--profile", help="lecture, finishing, artistic or full."),
         with_: Optional[str] = typer.Option(None, "--with", metavar="LIST", help="Extra groups, comma-separated."),
         offline_check: bool = typer.Option(False, "--offline-check", help="Only report what is missing; download nothing."),
+        restore: bool = typer.Option(False, "--restore", help="Reinstall the groups setup added before (after reinstalling videocli)."),
     ) -> None:
         """Install dependency groups and models (asks for a profile on a terminal)."""
         import sys
@@ -53,6 +54,9 @@ def register(app: typer.Typer) -> None:
         from videocli.setup import install, profiles
 
         extra = [g.strip() for g in (with_ or "").split(",") if g.strip()]
+        if restore:
+            extra += profiles.recorded_groups()
+            profile = profile or "lecture"
         asked = False
         if profile is None and not extra:
             if not state.json and sys.stdin.isatty() and not offline_check and not state.dry_run:
@@ -67,6 +71,7 @@ def register(app: typer.Typer) -> None:
             results = [{**a, "result": "planned" if a.get("status") != "blocked" else "blocked"} for a in actions]
         else:
             results = install.execute(actions, model)
+            profiles.record_groups(groups)
         for r in results:
             if r.get("result") == "blocked":
                 warnings.append({"code": "SETUP_BLOCKED", "message": f"{r.get('message')} {r.get('hint') or ''}".strip()})
@@ -84,6 +89,7 @@ def register(app: typer.Typer) -> None:
                 "actions": [{k: v for k, v in r.items() if k != "command"} | ({"command": " ".join(r["command"])} if r.get("command") else {}) for r in results],
                 "offline_check": offline_check,
                 "dry_run": state.dry_run,
+                "reinstall_command": profiles.reinstall_command(),
             },
             warnings=warnings,
             next=nxt,

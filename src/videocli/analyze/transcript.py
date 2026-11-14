@@ -275,6 +275,12 @@ class TranscriptAnalyzer:
             wav, model=params["model"], language=params["language"], initial_prompt=params["initial_prompt"],
             on_progress=lambda f: progress.update(f),
         )
+        if backend_name == "whisper":
+            from videocli.setup.profiles import lost_groups
+
+            if "gpu" in lost_groups():
+                ctx.warn("GROUPS_LOST", "The GPU runtime was installed before but is missing (reinstalling videocli removes it); "
+                         "transcription may run on the CPU. Restore it with: videocli setup --restore")
         if getattr(backend, "fallback", None):
             ctx.warn("GPU_FALLBACK", backend.fallback + ". Install the CUDA 12 libraries to use the GPU, or set: videocli config set transcript.device cpu")
         segments = clean_segments(raw.get("segments", []), duration)

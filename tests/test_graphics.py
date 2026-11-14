@@ -239,10 +239,10 @@ def test_caption_two_lines_break_balanced():
     from videocli.graphics.captions_ass import break_index, build
 
     assert break_index(["short"], 18, 2) is None
-    assert break_index("mark le help and d ra yu".split(), 18, 1) is None
-    i = break_index("mark le help, and d ra yu, and j k,".split(), 18, 2)
+    assert break_index(["mark", "le", "help", "and", "d", "ra", "yu"], 18, 1) is None
+    i = break_index(["mark", "le", "help,", "and", "d", "ra", "yu,", "and", "j", "k,"], 18, 2)
     assert i is not None
-    words = [{"start": i * 0.3, "end": i * 0.3 + 0.25, "word": w} for i, w in enumerate("mark le help, and d ra yu, and j k,".split())]
+    words = [{"start": i * 0.3, "end": i * 0.3 + 0.25, "word": w} for i, w in enumerate(["mark", "le", "help,", "and", "d", "ra", "yu,", "and", "j", "k,"])]
     for preset in ("karaoke", "bold-words", "clean"):
         ass = build(words, preset=preset, size=(360, 640), duration=10, brand=tp.Brand(), params={"max_chars": "18", "lines": "2"})
         lines = [x.split(",", 9)[9] for x in ass.splitlines() if x.startswith("Dialogue:")]
@@ -284,7 +284,7 @@ def test_captions_auto_move_to_top_over_lower_third():
 
     for x in dl:
         a, b = cue_times(x + "\n")[0]
-        assert ("{\\an8}" in x) == (a < 4.0 and 2.0 < b)
+        assert ("{\\an8}" in x) == (a < 4.0 and b > 2.0)
     fixed = build(words, preset="karaoke", size=(640, 360), duration=10, brand=tp.Brand(), avoid=[(2.0, 4.0)], params={"position": "bottom"})
     assert "{\\an8}" not in fixed
 

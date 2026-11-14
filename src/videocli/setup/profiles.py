@@ -172,6 +172,69 @@ def require_group(name: str, what: str) -> None:
         raise feature_not_installed(name, what)
 
 
+# --------------------------------------------------------------------------- memory of installed groups
+#
+# ``uv tool install --force`` (and pip --force-reinstall) rebuilds videocli's environment and
+# drops the optional groups that ``setup`` added. We remember what was installed, outside that
+# environment, so ``doctor`` and ``analyze`` can say so and ``setup --restore`` can put it back.
+
+
+def installed_state_path() -> Path:
+    from platformdirs import user_data_dir
+
+    return Path(user_data_dir("videocli", appauthor=False)) / "installed-groups.json"
+
+
+def recorded_groups() -> list[str]:
+    import json
+
+    try:
+        data = json.loads(installed_state_path().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    return [g for g in data.get("groups", []) if g in GROUPS and g != "base"]
+
+
+def record_groups(groups: list[str]) -> None:
+    import json
+
+    keep = sorted(set(recorded_groups()) | {g for g in groups if g != "base" and check_group(g, deep=False).ok},
+                  key=list(GROUPS).index)
+    path = installed_state_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"groups": keep}, indent=2) + "\n", encoding="utf-8")
+
+
+def lost_groups() -> list[str]:
+    """Groups that setup installed before but that are missing now (typically after a reinstall)."""
+    return [g for g in recorded_groups() if not check_group(g, deep=False).ok]
+
+
+def install_source() -> str:
+    """How videocli was installed: a git URL, a local path, or the package name."""
+    import json
+    from importlib import metadata
+
+    try:
+        info = json.loads(metadata.distribution("videocli").read_text("direct_url.json") or "{}")
+    except (metadata.PackageNotFoundError, ValueError, OSError):
+        info = {}
+    url = info.get("url")
+    if not url:
+        return "videocli"
+    if info.get("vcs_info"):
+        return f"git+{url}"
+    return url.removeprefix("file://")
+
+
+def reinstall_command(groups: list[str] | None = None) -> str:
+    """A uv command that reinstalls videocli and keeps the optional pip groups."""
+    groups = recorded_groups() if groups is None else groups
+    pkgs = [p for g in groups for p in GROUPS[g].pip]
+    withs = " ".join(f'--with "{p}"' if any(c in p for c in "<>=,") else f"--with {p}" for p in dict.fromkeys(pkgs))
+    return f"uv tool install --force {install_source()}{(' ' + withs) if withs else ''}"
+
+
 # --------------------------------------------------------------------------- models
 
 WHISPER_MODELS = ("tiny", "base", "small", "medium", "large-v3", "tiny.en", "base.en", "small.en", "medium.en", "distil-large-v3")

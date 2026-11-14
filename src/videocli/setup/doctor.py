@@ -89,8 +89,12 @@ def report(model: str = "small", skill_check: bool = True) -> dict[str, Any]:
         except ImportError:  # pragma: no cover - agent package arrives in phase 4
             skill = None
 
+    lost = profiles.lost_groups()
+    if lost:
+        warnings.append({"code": "GROUPS_LOST", "message": f"Installed before but missing now (a reinstall removes them): {', '.join(lost)}."})
+        fix.append("videocli setup --restore")
     gpu = _gpu()
-    if gpu["cuda"] and not groups.get("gpu"):
+    if gpu["cuda"] and not groups.get("gpu") and "gpu" not in lost:
         warnings.append({"code": "GPU_RUNTIME_MISSING",
                          "message": "An NVIDIA GPU is present but the CUDA 12 runtime is not installed; transcription runs on the CPU."})
         fix.append("videocli setup --with gpu   # optional: GPU transcription")
@@ -107,6 +111,7 @@ def report(model: str = "small", skill_check: bool = True) -> dict[str, Any]:
         "gpu": gpu,
         "ready": ready,
         "fix": list(dict.fromkeys(fix)),
+        "reinstall_command": profiles.reinstall_command(),
     }
     if skill is not None:
         out["skill"] = skill
