@@ -43,6 +43,7 @@ Exit codes: 0, 1, 2, 3, 4 · supports writes, `--dry-run`, `--estimate`
 | `--language CODE` | text |  | Language code; default auto. |
 | `--audio-stream N` | integer |  | Audio stream index. |
 | `--prompt` | text |  | Initial prompt for the speech model (names, jargon). |
+| `--profile` | text |  | lecture (default set), artistic or full (adds shots, motion, faces, prosody, music, …). |
 
 ## `videocli brand set`
 
@@ -430,7 +431,7 @@ Exit codes: 0, 2, 4
 | `--from T` | time |  |  |
 | `--to T` | time |  |  |
 | `--limit` | integer |  |  |
-| `--mode` | text |  | text (visual search arrives with phase 5). |
+| `--mode` | text |  | text (transcript), visual (logged shot descriptions) or both. |
 
 ## `videocli frames`
 
@@ -664,6 +665,18 @@ List unfinished long-running jobs (interrupted renders resume when re-run)
 
 Exit codes: 0
 
+## `videocli log`
+
+Describe every shot through work orders the calling agent (or another provider) answers
+
+Exit codes: 0, 2, 3, 4, 6 · supports writes, `--dry-run`, `--estimate`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `PATH` | text | yes | Media file or folder. |
+| `--only-missing` | flag |  |  |
+| `--batch` | integer |  | Shots per work order. |
+
 ## `videocli lut build`
 
 Write the compiled .cube for a clip's grade or the look (opens in Resolve and other tools)
@@ -677,6 +690,71 @@ Exit codes: 0, 2, 4 · supports writes
 | `--look` | flag |  |  |
 | `-o OUT.cube` | text | yes |  |
 | `--size` | integer |  | 33 or 65. |
+
+## `videocli music`
+
+Tempo, beats, downbeats, sections and bar energy of a music file or a source's audio
+
+Exit codes: 0, 1, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `FILE` | text | yes |  |
+
+## `videocli orders cancel`
+
+Cancel an order
+
+Exit codes: 0, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `OID ID` | text | yes |  |
+
+## `videocli orders list`
+
+Work orders and how many items are open
+
+Exit codes: 0
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `--open` | flag |  |  |
+
+## `videocli orders show`
+
+An order's items: images, question and the answer schema to follow
+
+Exit codes: 0, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `OID ID` | text | yes |  |
+| `--limit` | integer |  |  |
+
+## `videocli orders submit`
+
+Store answers (JSON lines); each is validated against its schema, partial submissions are fine
+
+Exit codes: 0, 2, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `OID ID` | text | yes |  |
+| `ANSWERS_FILE ANSWERS.jsonl` | text | yes |  |
+| `--model` | text |  | Model that produced the answers (provenance). |
+
+## `videocli people`
+
+People found by local face grouping (p1, p2, …); --name attaches a name you supply
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `FILE` | text | yes |  |
+| `--name p1="Maya"` | text |  |  |
+| `--forget` | flag |  | Delete face data for this source (privacy). |
 
 ## `videocli plan`
 
@@ -799,6 +877,22 @@ Exit codes: 0, 1, 2, 4 · supports writes
 | `--to T` | time |  |  |
 | `--max-tiles` | integer |  |  |
 
+## `videocli shots`
+
+Shot records (size, type, camera motion, people, metrics, description) with a filter language
+
+Exit codes: 0, 2, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `FILE` | text | yes |  |
+| `--where EXPR` | text |  | e.g. "size=CU and motion=static", "duration>4" |
+| `--sort FIELD` | text |  | FIELD or -FIELD (descending). |
+| `--format` | text |  | records or compact. |
+| `--limit` | integer |  |  |
+| `--from T` | time |  |  |
+| `--to T` | time |  |  |
+
 ## `videocli silences`
 
 Detected silences in a window, longest-first option
@@ -826,6 +920,27 @@ Exit codes: 0, 2 · supports writes, `--dry-run`
 | `--scope` | text |  | project (current folder) or user (home). |
 | `--dir PATH` | text |  | Install under this folder instead. |
 
+## `videocli slides`
+
+Slide changes in a screen recording or lecture, with the words spoken over each
+
+Exit codes: 0, 1, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `FILE` | text | yes |  |
+| `--limit` | integer |  |  |
+
+## `videocli speakers`
+
+Speaker talk time and turns (diarize group)
+
+Exit codes: 0, 3, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `FILE` | text | yes |  |
+
 ## `videocli strip`
 
 Filmstrip of frames over the audio waveform for a short window (inspect one cut)
@@ -839,6 +954,18 @@ Exit codes: 0, 1, 2, 4 · supports writes
 | `--to T` | time | yes |  |
 | `--width` | integer |  |  |
 | `--frames` | integer |  | Frames across the window. |
+
+## `videocli suggest`
+
+Candidates with evidence (never changes an EDL): retakes, dead-shots, chapters
+
+Exit codes: 0, 2, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `FILE` | text | yes |  |
+| `WHAT retakes|dead-shots|chapters` | text | yes |  |
+| `--limit` | integer |  |  |
 
 ## `videocli transcript`
 

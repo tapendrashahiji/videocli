@@ -108,8 +108,8 @@ class MotionAnalyzer(_Base):
         h, w = frames.shape[1:3] if len(frames) else (0, 0)
         ys, xs = np.mgrid[0:h, 0:w] if h else (np.zeros((0, 0)), np.zeros((0, 0)))
         rx, ry = (xs - w / 2), (ys - h / 2)
-        for a, b in zip(frames, frames[1:]):
-            flow = cv2.calcOpticalFlowFarneback(a, b, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+        for a, b in zip(frames, frames[1:], strict=False):
+            flow = cv2.calcOpticalFlowFarneback(a, b, None, 0.5, 3, 15, 3, 5, 1.2, 0)  # type: ignore[call-overload]
             fx, fy = flow[..., 0], flow[..., 1]
             gdx, gdy = float(np.median(fx)), float(np.median(fy))
             denom = float((rx * rx + ry * ry).mean()) or 1.0
@@ -200,7 +200,7 @@ class FacesAnalyzer(_Base):
         eyes = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_eye.xml")
         scenes = _scenes(ctx, src)
         faces, sigs = [], []
-        for t, f in zip(times, frames):
+        for t, f in zip(times, frames, strict=False):
             H, W = f.shape
             for x, y, w, h in det.detectMultiScale(f, scaleFactor=1.1, minNeighbors=5, minSize=(max(24, W // 25), max(24, W // 25))):
                 crop = f[y:y + h, x:x + w]
@@ -210,7 +210,7 @@ class FacesAnalyzer(_Base):
                 sigs.append(face_signature(crop))
         labels = cluster(sigs)
         order: dict[int, str] = {}
-        for f, lab in zip(faces, labels):
+        for f, lab in zip(faces, labels, strict=False):
             order.setdefault(lab, f"p{len(order) + 1}")
             f["person"] = order[lab]
         people = {}
@@ -315,7 +315,7 @@ class EmbedAnalyzer(_Base):
         for i, r in enumerate(index):
             by_shot.setdefault(r["shot"], []).append(i)
         arr = np.asarray(vecs)
-        for a, b in zip(sc, sc[1:]):
+        for a, b in zip(sc, sc[1:], strict=False):
             ia, ib = by_shot.get(a["id"]), by_shot.get(b["id"])
             if ia and ib:
                 sims.append({"a": a["id"], "b": b["id"], "similarity": round(float(np.max(arr[ia] @ arr[ib].T)), 4)})
@@ -331,14 +331,14 @@ class SlidesAnalyzer(_Base):
     schema = "videocli.slides/v1"
 
     def params(self, ctx: RunContext) -> dict[str, Any]:
-        return {"hold": float(ctx.options.get("slide_hold") or 2.0), "threshold": 0.12, "crop": ctx.options.get("slide_crop")}
+        return {"hold": float(ctx.options.get("slide_hold") or 2.0), "threshold": 0.04, "crop": ctx.options.get("slide_crop")}
 
     def run(self, src: Source, params: dict[str, Any], ctx: RunContext) -> Path:
         times, frames = decode_frames(src.path, 1.0, 160)
         hold, thr = params["hold"], params["threshold"]
         slides = []
         cur_start, ref = 0.0, None
-        for t, f in zip(times, frames):
+        for t, f in zip(times, frames, strict=False):
             g = f.astype(np.float32) / 255
             if ref is None:
                 ref = g

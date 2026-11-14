@@ -177,7 +177,7 @@ def run_analyzers(
         runnable.append(an)
 
     # Validate first: every dependency problem surfaces before any long work starts.
-    for an in runnable:
+    for an in sorted(runnable, key=lambda a: a.name not in explicit):  # the requested analyzers report first
         av = an.available(ctx)
         if not av.ok and av.error is not None:
             raise av.error

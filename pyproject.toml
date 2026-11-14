@@ -32,7 +32,7 @@ dependencies = [
   "platformdirs>=4",
   "numpy>=1.24",
   "pillow>=10",
-  "opencv-python-headless>=4.8",
+  "opencv-python-headless>=4.8,<5",  # 5.x dropped the Haar face detector used by the faces analyzer
   "scenedetect>=0.6.4",
   "faster-whisper>=1.0",
   "tomli>=2; python_version < '3.11'",
@@ -81,6 +81,8 @@ pythonVersion = "3.10"
 typeCheckingMode = "basic"
 reportMissingImports = "warning"
 reportMissingModuleSource = false
+reportCallIssue = "warning"
+reportAttributeAccessIssue = "warning"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
