@@ -44,6 +44,20 @@ Exit codes: 0, 1, 2, 3, 4 · supports writes, `--dry-run`, `--estimate`
 | `--audio-stream N` | integer |  | Audio stream index. |
 | `--prompt` | text |  | Initial prompt for the speech model (names, jargon). |
 
+## `videocli brand set`
+
+Set the brand kit used by every graphic (re-render to update them all)
+
+Exit codes: 0, 2 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `--font FILE` | text |  |  |
+| `--font-bold FILE` | text |  |  |
+| `--colors #111,#fff,#e63` | text |  | primary, secondary, accent |
+| `--logo FILE` | text |  |  |
+| `--safe-margin` | number |  |  |
+
 ## `videocli cache clear`
 
 Remove all caches (render nodes, bakes, LUTs, analysis artifacts, logs); keeps edits and project files
@@ -78,6 +92,19 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `-o OUT.srt|OUT.vtt` | text | yes |  |
 | `--max-chars` | integer |  |  |
 | `--max-lines` | integer |  |  |
+
+## `videocli captions-style`
+
+Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=…)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--preset` | text |  |  |
+| `--param k=v` | text |  |  |
+| `--burn` | flag |  |  |
 
 ## `videocli commands`
 
@@ -116,6 +143,25 @@ Exit codes: 0, 2
 Report installed tools, groups, models and the commands that fix what is missing
 
 Exit codes: 0
+
+## `videocli edl audio`
+
+Add music, an effect or room tone at an output time, with gain, ducking under speech, fades and --fit
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--source FILE` | text | yes |  |
+| `--role` | text |  | music, sfx or tone. |
+| `--at OUT_T` | time |  | Output time where it starts. |
+| `--from T` | time |  | Source in-point. |
+| `--to T` | time |  | Source out-point. |
+| `--gain DB` | number |  |  |
+| `--duck DB` | number |  | Lower by this much under speech (e.g. -10). |
+| `--fade S` | number |  |  |
+| `--fit` | flag |  | Loop or trim to the end of the edit. |
 
 ## `videocli edl copy`
 
@@ -202,6 +248,41 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `--before CLIP_ID|start` | text |  |  |
 | `--after CLIP_ID|end` | text |  |  |
 
+## `videocli edl overlay`
+
+Put B-roll over a spine clip (cover) or picture-in-picture (pip), anchored so it follows the clip
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--source FILE` | text | yes | Overlay media. |
+| `--from T` | time | yes | Overlay source in-point. |
+| `--to T` | time | yes | Overlay source out-point. |
+| `--on CLIP_ID` | text | yes | Spine clip it is anchored to. |
+| `--offset S` | number |  | Seconds after the clip's first frame (output time). |
+| `--mode` | text |  | cover or pip. |
+| `--pos` | text |  | pip corner tl|tr|bl|br or X,Y (0-1 or pixels). |
+| `--scale` | number |  | pip width as a share of the frame (default 0.33). |
+| `--sound` | flag |  | Keep the overlay's own sound (default: muted). |
+| `--mute` | flag |  |  |
+| `--opacity` | number |  |  |
+
+## `videocli edl reframe`
+
+Vertical, square or 4:5 output with a crop per shot (center, or subject from face data)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--aspect` | text |  | 9:16, 1:1, 4:5, 4:3 or 16:9. |
+| `--mode` | text |  | center or subject. |
+| `--clip CLIP_ID` | text |  | Set one clip's crop centre with --x. |
+| `--x` | number |  | Crop centre, 0 (left) to 1 (right). |
+
 ## `videocli edl restore`
 
 Bring back a previously removed source-time range
@@ -228,6 +309,35 @@ Exit codes: 0, 4
 | `--clips` | flag |  |  |
 | `--limit` | integer |  |  |
 
+## `videocli edl sound`
+
+Dialogue clean-up (denoise, levelling, compression, high-pass) and room tone under gaps
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--denoise F` | number |  |  |
+| `--level` | flag |  | Even out levels across speakers. |
+| `--compress` | flag |  | Gentle compression. |
+| `--highpass HZ` | number |  | High-pass cutoff (0 removes). |
+| `--room-tone auto|FILE|none` | text |  |  |
+
+## `videocli edl speed`
+
+Constant speed (--rate), a ramp (--ramp POS:RATE,…) or a freeze of the last frame (--freeze S)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `CLIP_ID CLIP_ID` | text | yes |  |
+| `--rate` | number |  |  |
+| `--ramp 0:1.0,0.6:2.5,1:1.0` | text |  |  |
+| `--freeze S` | number |  |  |
+
 ## `videocli edl split`
 
 Split a clip at a source time; the second part gets a new id
@@ -239,6 +349,45 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `NAME` | text | yes |  |
 | `CLIP_ID CLIP_ID` | text | yes |  |
 | `--at T` | time | yes | Source time inside the clip. |
+
+## `videocli edl split-edit`
+
+J/L cut: sound starts before (--lead) or runs past (--lag) the picture cut
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `CLIP_ID CLIP_ID` | text | yes |  |
+| `--lead S` | number |  |  |
+| `--lag S` | number |  |  |
+
+## `videocli edl stabilize`
+
+Stabilise a clip (two-pass, baked and cached); --strength 0 removes it
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `CLIP_ID CLIP_ID` | text | yes |  |
+| `--strength` | number |  |  |
+
+## `videocli edl transition`
+
+Transition after a spine clip: dissolve, fade (through black), dip (through a colour) or cut; shortens the edit by the overlap
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `CLIP_ID CLIP_ID` | text | yes |  |
+| `--type` | text |  | dissolve, fade, dip or cut (removes). |
+| `--duration S` | number |  |  |
+| `--color` | text |  | dip colour: black or white. |
 
 ## `videocli edl trim`
 
@@ -252,6 +401,19 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `CLIP_ID CLIP_ID` | text | yes |  |
 | `--start T` | time |  | New source start. |
 | `--end T` | time |  | New source end. |
+
+## `videocli export`
+
+Hand the timeline to an editor: OpenTimelineIO, Final Cut XML or CMX 3600 (with a round-check)
+
+Exit codes: 0, 1, 2, 3, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--to` | text | yes | otio, fcpxml, edl (CMX 3600), cube (LUT per clip) or cdl (ASC CDL). |
+| `-o PATH` | text |  |  |
+| `--relative-to DIR` | text |  | Write media paths relative to DIR. |
 
 ## `videocli find`
 
@@ -287,6 +449,205 @@ Exit codes: 0, 1, 2, 4 · supports writes
 | `--format` | text |  | jpg or png. |
 | `--limit` | integer |  |  |
 
+## `videocli gfx add`
+
+Add a graphic anchored to a clip (--on) or to a spoken phrase (--at-word, --land end)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--template` | text | yes |  |
+| `--param k=v` | text |  | Template parameter (repeatable). |
+| `--on CLIP_ID` | text |  |  |
+| `--offset S` | number |  |  |
+| `--at-word PHRASE` | text |  |  |
+| `--land` | text |  | start (appear on the word) or end (reveal finishes on it). |
+| `--duration S` | number |  |  |
+| `--layer` | integer |  |  |
+
+## `videocli gfx lint`
+
+Graphics readability and placement: length, safe area, reading time, collisions, captions, contrast
+
+Exit codes: 0, 4, 5
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+
+## `videocli gfx list`
+
+Graphics in an EDL with their output times
+
+Exit codes: 0, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+
+## `videocli gfx new-template`
+
+Scaffold a working template folder for a baker
+
+Exit codes: 0, 2 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `DIRECTORY DIR` | text | yes |  |
+| `--baker` | text |  |  |
+
+## `videocli gfx preview`
+
+One composited frame (--still T, seconds into the graphic) or a short clip of the item over the real footage
+
+Exit codes: 0, 1, 2, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `ITEM ITEM_ID` | text | yes |  |
+| `--still T` | time |  |  |
+| `--clip` | flag |  |  |
+
+## `videocli gfx remove`
+
+Remove a graphic
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `ITEM ITEM_ID` | text | yes |  |
+
+## `videocli gfx set`
+
+Change a graphic's parameters, duration, offset or layer
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `ITEM ITEM_ID` | text | yes |  |
+| `--param k=v` | text |  |  |
+| `--duration` | number |  |  |
+| `--offset` | number |  |  |
+| `--layer` | integer |  |  |
+
+## `videocli gfx templates`
+
+Available templates (project, user, built-in) with their parameters
+
+Exit codes: 0
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `--baker` | text |  | titles, manim, html or generic. |
+
+## `videocli grade auto`
+
+Balance white and exposure per shoot and match shots to a reference, within skin and clipping limits
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--balance` | flag |  |  |
+| `--match` | flag |  |  |
+| `--reference CLIP_ID|IMAGE` | text |  |  |
+| `--strength` | number |  |  |
+
+## `videocli grade input`
+
+Input transform for a source: auto (from tags), none, hlg_to_rec709, pq_to_rec709, bt601_to_rec709 or a camera .cube
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--source ID` | text | yes |  |
+| `--transform auto|NAME|LUT.cube` | text |  |  |
+
+## `videocli grade look`
+
+Timeline look from a .cube, or fitted from a reference frame or video (contrast, saturation, warmth)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--from REF` | text | yes |  |
+| `--strength` | number |  |  |
+
+## `videocli grade match`
+
+Fit a CDL that moves one clip toward another clip or an image
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text | yes |  |
+| `--to CLIP_ID|IMAGE` | text | yes |  |
+| `--strength` | number |  |  |
+
+## `videocli grade preview`
+
+Before/after stills (--split) or N ranked candidates on one sheet (--candidates N)
+
+Exit codes: 0, 2, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text |  |  |
+| `--split` | flag |  |  |
+| `--candidates` | integer |  |  |
+
+## `videocli grade reset`
+
+Remove a clip's grade (or every grade with no --clip)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text |  |  |
+
+## `videocli grade set`
+
+Add an op to a clip's grade, a shared group grade, or the timeline look (e.g. --op 'cdl slope=1.05,1,0.95 sat=0.9')
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text |  |  |
+| `--group KEY` | text |  | Shared grade key; with --clip, assigns the clip to it. |
+| `--look` | flag |  | The timeline look, applied after every clip grade. |
+| `--op` | text |  | Op in text form; repeatable. |
+| `--replace` | flag |  | Replace the grade's ops instead of appending. |
+
+## `videocli grade show`
+
+Grades, their ops, and which clips use them
+
+Exit codes: 0, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text |  |  |
+
 ## `videocli index`
 
 Summary and artifact pointers for a source (read this first)
@@ -302,6 +663,20 @@ Exit codes: 0, 4
 List unfinished long-running jobs (interrupted renders resume when re-run)
 
 Exit codes: 0
+
+## `videocli lut build`
+
+Write the compiled .cube for a clip's grade or the look (opens in Resolve and other tools)
+
+Exit codes: 0, 2, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text |  |  |
+| `--look` | flag |  |  |
+| `-o OUT.cube` | text | yes |  |
+| `--size` | integer |  | 33 or 65. |
 
 ## `videocli plan`
 
@@ -346,6 +721,8 @@ Exit codes: 0, 1, 2, 3, 4 · supports writes, `--dry-run`, `--estimate`
 | `--around-cuts S` | number |  | Only S seconds each side of every join, as one labelled reel. |
 | `--burn-captions` | flag |  | Burn captions re-timed from the transcript. |
 | `--no-normalize` | flag |  | Skip loudness normalization. |
+| `--stems` | flag |  | Also write dialogue, music and effects stems next to the output. |
+| `--explain ITEM_ID` | text |  | Show which render nodes an item affects, then stop. |
 
 ## `videocli scenes`
 
@@ -374,6 +751,22 @@ Exit codes: 0, 2
 | `NAME` | text |  | e.g. envelope, edl, probe, verify, 'command:render'. Omit to list. |
 | `--all` | flag |  | Every schema. |
 | `-o DIR` | text |  | With --all: write one file per schema. |
+
+## `videocli scopes`
+
+Colour as numbers per shot or clip: luma percentiles, clipping, channel means, saturation, white balance, shot-to-shot difference
+
+Exit codes: 0, 2, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `TARGET FILE|NAME` | text | yes | Media file, or an EDL name (measures each clip with its grade). |
+| `--shots` | flag |  | Per shot (file) or per clip (EDL). |
+| `--at T` | time |  | One frame. |
+| `--from T` | time |  |  |
+| `--to T` | time |  |  |
+| `--ungraded` | flag |  | EDL: measure before the grade. |
+| `--sheet` | flag |  | EDL: also write before/after stills. |
 
 ## `videocli setup`
 

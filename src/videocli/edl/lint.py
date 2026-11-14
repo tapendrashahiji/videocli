@@ -95,6 +95,68 @@ def lint(
         elif it.offset < -EPS or it.offset > c.out_duration + EPS:
             issues.append({"rule": "anchor_out_of_range", "severity": "warn", "item": it.id, "anchor": it.anchor, "offset": it.offset})
 
+    # phase 6: layers, transitions, split edits, music, reframe
+    tm = edl.timemap() if main else None
+    spans = {sp.id: sp for sp in tm.spans} if tm else {}
+    windows = []
+    for ov in edl.tracks.overlay:
+        sp = spans.get(ov.anchor)
+        if sp is None:
+            continue
+        a = sp.out_start + ov.offset
+        b = a + (ov.end - ov.start)
+        windows.append((a, b, ov))
+        if b > sp.out_end + EPS:
+            issues.append({"rule": "overlay_past_clip", "severity": "warn", "item": ov.id, "anchor": ov.anchor,
+                           "overrun": ms(b - sp.out_end)})
+        src = edl.sources.get(ov.source)
+        if src and src.duration and ov.end > src.duration + 0.05:
+            issues.append({"rule": "out_of_bounds", "severity": "error", "item": ov.id})
+    windows.sort(key=lambda w: w[0])
+    for (_a1, b1, o1), (a2, _b2, o2) in zip(windows, windows[1:], strict=False):
+        if o1.layer == o2.layer and a2 < b1 - EPS:
+            issues.append({"rule": "overlapping_overlays", "severity": "error", "items": [o1.id, o2.id], "at": ms(a2),
+                           "fix": f"videocli edl lint {name}  # move {o2.id} to start after {ms(b1)}s or put it on another layer"})
+    ids = [c.id for c in main]
+    for t in edl.transitions:
+        if t.type == "cut" or t.after not in ids:
+            continue
+        i = ids.index(t.after)
+        if i + 1 >= len(main):
+            issues.append({"rule": "transition_handles", "severity": "error", "clip": t.after, "message": "transition after the last clip"})
+            continue
+        a, b = main[i], main[i + 1]
+        if t.duration > min(a.out_duration, b.out_duration) / 2 + EPS:
+            issues.append({"rule": "transition_handles", "severity": "error", "clips": [a.id, b.id], "duration": t.duration,
+                           "fix": f"videocli edl transition {name} {a.id} --type {t.type} --duration {ms(min(a.out_duration, b.out_duration) / 2)}"})
+    for i, c in enumerate(main):
+        if c.audio.lag and i + 1 < len(main) and c.audio.lag > main[i + 1].out_duration:
+            issues.append({"rule": "split_edit_overrun", "severity": "warn", "clip": c.id, "lag": c.audio.lag})
+        if c.audio.lead and i > 0 and c.audio.lead > main[i - 1].out_duration:
+            issues.append({"rule": "split_edit_overrun", "severity": "warn", "clip": c.id, "lead": c.audio.lead})
+        if c.ramp and (c.audio.lead or c.audio.lag):
+            issues.append({"rule": "ramp_sound", "severity": "warn", "clip": c.id, "message": "ramped clips are muted; split-edit sound is ignored"})
+    total = tm.duration if tm else 0.0
+    for it in edl.tracks.audio:
+        if it.role != "music" or it.fit:
+            continue
+        src = edl.sources.get(it.source)
+        length = ((it.end if it.end is not None else (src.duration if src else 0.0)) - it.start)
+        start = it.at or 0.0
+        if start + length < total - 0.5:
+            issues.append({"rule": "music_short", "severity": "warn", "item": it.id, "ends_at": ms(start + length), "edit": ms(total),
+                           "fix": f"videocli edl audio {name} --fit  # or re-add the music with --fit"})
+    if edl.reframe is not None:
+        w, h = edl.resolution
+        aw, ah = (int(x) for x in edl.reframe.aspect.split(":"))
+        for sid in {c.source for c in main}:
+            s = edl.sources[sid]
+            if s.width and s.height:
+                crop_w = min(s.width, s.height * aw / ah)
+                if crop_w < 0.5 * w:
+                    issues.append({"rule": "reframe_low_resolution", "severity": "warn", "source": sid,
+                                   "crop_width": int(crop_w), "output_width": w})
+
     if not main:
         issues.append({"rule": "empty", "severity": "error", "message": "The spine has no clips"})
 

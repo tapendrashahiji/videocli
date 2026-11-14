@@ -401,3 +401,150 @@ def diff(a: EDL, b: EDL) -> dict[str, Any]:
             t: {"a": len(getattr(a.tracks, t)), "b": len(getattr(b.tracks, t))} for t in ("overlay", "graphics", "audio")
         },
     }
+
+
+# --------------------------------------------------------------------------- phase 6: layers and sound
+
+from videocli.edl.model import AudioItem, Overlay, Reframe, SourceRef, Transition  # noqa: E402
+
+ASPECT_RATIOS = {"16:9": (16, 9), "9:16": (9, 16), "1:1": (1, 1), "4:5": (4, 5), "4:3": (4, 3)}
+
+
+def add_source(edl: EDL, sid: str, ref: SourceRef) -> None:
+    if sid not in edl.sources:
+        edl.sources[sid] = ref
+
+
+def overlay(edl: EDL, sid: str, ref: SourceRef, a: float, b: float, *, on: str, offset: float = 0.0, mode: str = "cover",
+            pos: str | None = None, scale: float | None = None, mute: bool = True, opacity: float = 1.0) -> dict[str, Any]:
+    get_clip(edl, on)
+    if b <= a:
+        raise UsageError("BAD_ARGUMENT", "--to must be after --from.")
+    if not ref.has_video:
+        raise InputError("NO_VIDEO", f"{ref.path} has no video to overlay.")
+    if mode not in ("cover", "pip"):
+        raise UsageError("BAD_ARGUMENT", "--mode must be cover or pip.")
+    if pos and pos not in ("tl", "tr", "bl", "br"):
+        try:
+            x, y = (float(v) for v in pos.split(","))
+        except ValueError as exc:
+            raise UsageError("BAD_ARGUMENT", "--pos must be tl, tr, bl, br or X,Y.") from exc
+    add_source(edl, sid, ref)
+    oid = edl.next_id("o")
+    edl.tracks.overlay.append(Overlay(id=oid, source=sid, start=ms(a), end=ms(min(b, ref.duration)), anchor=on, offset=ms(offset),
+                                      mode=mode, pos=pos, scale=scale if mode == "pip" else None, mute=mute, opacity=opacity))  # type: ignore[arg-type]
+    return {"item": oid, "anchor": on, "offset": offset, "duration": ms(min(b, ref.duration) - a)}
+
+
+def audio(edl: EDL, sid: str, ref: SourceRef, *, role: str = "music", at: float | None = None, a: float = 0.0, b: float | None = None,
+          gain_db: float = 0.0, duck_db: float | None = None, fade: float = 0.0, fit: bool = False) -> dict[str, Any]:
+    if not ref.has_audio:
+        raise InputError("NO_AUDIO", f"{ref.path} has no audio.")
+    if role not in ("music", "sfx", "tone"):
+        raise UsageError("BAD_ARGUMENT", "--role must be music, sfx or tone.")
+    add_source(edl, sid, ref)
+    prefix = {"music": "m", "sfx": "e", "tone": "t"}[role]
+    iid = edl.next_id(prefix)
+    item = AudioItem(id=iid, source=sid, role=role, start=ms(a), end=ms(b) if b is not None else None,  # type: ignore[arg-type]
+                     at=ms(at if at is not None else 0.0), gain_db=gain_db, duck_db=duck_db, fade=fade, fit=fit)
+    edl.tracks.audio.append(item)
+    return {"item": iid, "role": role, "at": item.at}
+
+
+def transition(edl: EDL, clip_id: str, ttype: str, duration: float, color: str | None = None) -> dict[str, Any]:
+    c = get_clip(edl, clip_id)
+    idx = edl.tracks.main.index(c)
+    if idx == len(edl.tracks.main) - 1:
+        raise UsageError("BAD_ARGUMENT", f"{clip_id} is the last clip; a transition goes between two clips.")
+    edl.transitions = [t for t in edl.transitions if t.after != clip_id]
+    if ttype != "cut":
+        edl.transitions.append(Transition(after=clip_id, type=ttype, duration=duration, color=color))  # type: ignore[arg-type]
+    return {"after": clip_id, "type": ttype, "duration": duration if ttype != "cut" else 0.0, "output_duration": ms(edl.output_duration())}
+
+
+def split_edit(edl: EDL, clip_id: str, lead: float | None, lag: float | None) -> dict[str, Any]:
+    c = get_clip(edl, clip_id)
+    if lead is None and lag is None:
+        raise UsageError("BAD_ARGUMENT", "Give --lead and/or --lag in seconds.")
+    if lead is not None:
+        c.audio.lead = lead
+    if lag is not None:
+        c.audio.lag = lag
+    return {"clip": clip_id, "lead": c.audio.lead, "lag": c.audio.lag}
+
+
+def parse_ramp(text: str) -> list[tuple[float, float]]:
+    pts = []
+    for part in text.split(","):
+        try:
+            p, r = part.split(":")
+            pts.append((float(p), float(r)))
+        except ValueError as exc:
+            raise UsageError("BAD_ARGUMENT", f"Cannot parse ramp point {part!r}; use POS:RATE pairs like 0:1.0,0.6:2.5,1:1.0.") from exc
+    return pts
+
+
+def speed(edl: EDL, clip_id: str, *, rate: float | None = None, ramp: str | None = None, freeze: float | None = None) -> dict[str, Any]:
+    c = get_clip(edl, clip_id)
+    if sum(x is not None for x in (rate, ramp, freeze)) != 1:
+        raise UsageError("BAD_ARGUMENT", "Give exactly one of --rate, --ramp or --freeze.")
+    before = c.out_duration
+    if rate is not None:
+        if not 0.05 <= rate <= 20:
+            raise UsageError("BAD_ARGUMENT", "--rate must be between 0.05 and 20.")
+        c.speed, c.ramp = rate, None
+    elif ramp is not None:
+        c.ramp = parse_ramp(ramp)
+        c.speed = 1.0
+    else:
+        c.freeze = float(freeze or 0.0)
+    edl.tracks.main[edl.tracks.main.index(c)] = Clip.model_validate(c.model_dump())
+    c2 = get_clip(edl, clip_id)
+    return {"clip": clip_id, "out_duration": {"before": ms(before), "after": ms(c2.out_duration)}}
+
+
+def reframe(edl: EDL, aspect: str, mode: str = "center", clip_id: str | None = None, x: float | None = None) -> dict[str, Any]:
+    if aspect not in ASPECT_RATIOS:
+        raise UsageError("BAD_ARGUMENT", f"--aspect must be one of {', '.join(ASPECT_RATIOS)}.")
+    if clip_id is not None:
+        get_clip(edl, clip_id)
+        if edl.reframe is None:
+            raise UsageError("BAD_ARGUMENT", "Reframe the whole timeline first (without --clip).")
+        if x is None:
+            raise UsageError("BAD_ARGUMENT", "With --clip, give the crop centre with --x (0 left … 1 right).")
+        edl.reframe.crops[clip_id] = max(0.0, min(1.0, x))
+        return {"clip": clip_id, "x": edl.reframe.crops[clip_id]}
+    aw, ah = ASPECT_RATIOS[aspect]
+    short = min(edl.resolution)
+    if aw >= ah:
+        w, h = int(round(short * aw / ah / 2)) * 2, short
+    else:
+        w, h = short, int(round(short * ah / aw / 2)) * 2
+    edl.reframe = Reframe(aspect=aspect, mode=mode, crops=edl.reframe.crops if edl.reframe else {})  # type: ignore[arg-type]
+    edl.resolution = (w, h)
+    return {"aspect": aspect, "mode": mode, "resolution": [w, h]}
+
+
+def stabilize(edl: EDL, clip_id: str, strength: float) -> dict[str, Any]:
+    c = get_clip(edl, clip_id)
+    if not 0 <= strength <= 1:
+        raise UsageError("BAD_ARGUMENT", "--strength must be between 0 and 1.")
+    c.stabilize = strength if strength > 0 else None
+    return {"clip": clip_id, "strength": strength}
+
+
+def sound(edl: EDL, *, denoise: float | None = None, level: bool | None = None, compress: bool | None = None,
+          highpass: float | None = None, room_tone: str | None = None) -> dict[str, Any]:
+    s = edl.sound
+    if denoise is not None:
+        s.denoise = denoise
+    if level is not None:
+        s.level = level
+    if compress is not None:
+        s.compress = compress
+    if highpass is not None:
+        s.highpass = highpass or None
+    if room_tone is not None:
+        s.room_tone = None if room_tone in ("", "none", "off") else room_tone
+    edl.sound = type(s).model_validate(s.model_dump())
+    return {"sound": edl.sound.model_dump()}

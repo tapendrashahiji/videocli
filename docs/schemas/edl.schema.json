@@ -128,6 +128,22 @@
           "title": "Style",
           "type": "string"
         },
+        "preset": {
+          "default": "clean",
+          "enum": [
+            "clean",
+            "bold-words",
+            "karaoke",
+            "custom"
+          ],
+          "title": "Preset",
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        },
         "max_chars": {
           "default": 42,
           "maximum": 120,
@@ -204,6 +220,55 @@
           "default": false,
           "title": "Locked",
           "type": "boolean"
+        },
+        "ramp": {
+          "anyOf": [
+            {
+              "items": {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Speed ramp: (position 0-1 in the clip, rate) points",
+          "title": "Ramp"
+        },
+        "freeze": {
+          "default": 0.0,
+          "description": "Hold the last frame this many seconds",
+          "maximum": 60,
+          "minimum": 0,
+          "title": "Freeze",
+          "type": "number"
+        },
+        "stabilize": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Stabilisation strength (baked)",
+          "title": "Stabilize"
         }
       },
       "required": [
@@ -592,6 +657,93 @@
       "title": "Overlay",
       "type": "object"
     },
+    "Reframe": {
+      "additionalProperties": false,
+      "properties": {
+        "aspect": {
+          "default": "9:16",
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:5",
+            "4:3"
+          ],
+          "title": "Aspect",
+          "type": "string"
+        },
+        "mode": {
+          "default": "center",
+          "enum": [
+            "center",
+            "subject"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "crops": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Per-clip horizontal crop centre 0-1 (subject mode)",
+          "title": "Crops",
+          "type": "object"
+        }
+      },
+      "title": "Reframe",
+      "type": "object"
+    },
+    "Sound": {
+      "additionalProperties": false,
+      "properties": {
+        "denoise": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Denoise",
+          "type": "number"
+        },
+        "level": {
+          "default": false,
+          "title": "Level",
+          "type": "boolean"
+        },
+        "compress": {
+          "default": false,
+          "title": "Compress",
+          "type": "boolean"
+        },
+        "highpass": {
+          "anyOf": [
+            {
+              "maximum": 400,
+              "minimum": 20,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Highpass"
+        },
+        "room_tone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "auto, or a source id / path for a room-tone recording",
+          "title": "Room Tone"
+        }
+      },
+      "title": "Sound",
+      "type": "object"
+    },
     "SourceRef": {
       "additionalProperties": false,
       "properties": {
@@ -625,6 +777,30 @@
           "default": true,
           "title": "Has Audio",
           "type": "boolean"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height"
         },
         "input_transform": {
           "anyOf": [
@@ -803,6 +979,31 @@
     },
     "output": {
       "$ref": "#/$defs/Output"
+    },
+    "reframe": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Reframe"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "sound": {
+      "$ref": "#/$defs/Sound"
+    },
+    "commands": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "Commands the generic baker may run, by name",
+      "title": "Commands",
+      "type": "object"
     },
     "cuts": {
       "items": {

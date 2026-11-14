@@ -1,0 +1,51 @@
+{
+  "schema": "videocli.template/v1",
+  "name": "logo-bug",
+  "baker": "titles",
+  "design": "logo-bug",
+  "params": {
+    "logo": {
+      "type": "file",
+      "default": "brand.logo"
+    },
+    "opacity": {
+      "type": "number",
+      "default": 0.8,
+      "min": 0,
+      "max": 1
+    },
+    "corner": {
+      "type": "choice",
+      "choices": [
+        "tl",
+        "tr",
+        "bl",
+        "br"
+      ],
+      "default": "tr"
+    },
+    "animation": {
+      "type": "choice",
+      "choices": [
+        "fade"
+      ],
+      "default": "fade"
+    }
+  },
+  "duration": {
+    "default": 10.0,
+    "min": 1.0,
+    "in": 0.5,
+    "out": 0.5
+  },
+  "placement": {
+    "anchor": "corner",
+    "safe_area": true
+  },
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1",
+    "4:5"
+  ]
+}

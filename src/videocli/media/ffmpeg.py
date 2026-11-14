@@ -293,6 +293,7 @@ def run(
     tool: str = "ffmpeg",
     timeout: float | None = None,
     cwd: Path | None = None,
+    stdin_iter: Any = None,
 ) -> RunResult:
     """Run ffmpeg (or ffprobe) with ``args``.
 
@@ -304,7 +305,7 @@ def run(
     binary = locate(tool).path
     cmd = [binary, "-hide_banner"]
     if tool == "ffmpeg":
-        cmd.append("-nostdin" if stdin is None else "-nostats")
+        cmd.append("-nostdin" if (stdin is None and stdin_iter is None) else "-nostats")
         if progress_total:
             cmd += ["-progress", "pipe:1", "-nostats"]
     cmd += args
@@ -315,7 +316,7 @@ def run(
         stderr_chunks: list[str] = []
         proc = subprocess.Popen(
             cmd,
-            stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
+            stdin=subprocess.PIPE if (stdin is not None or stdin_iter is not None) else subprocess.DEVNULL,
             stdout=subprocess.PIPE if (capture or progress_total) else subprocess.DEVNULL,
             stderr=subprocess.PIPE,
             cwd=str(cwd) if cwd else None,
@@ -340,6 +341,14 @@ def run(
                 assert proc.stdin is not None
                 try:
                     proc.stdin.write(stdin)
+                    proc.stdin.close()
+                except BrokenPipeError:
+                    pass
+            elif stdin_iter is not None:
+                assert proc.stdin is not None
+                try:
+                    for chunk in stdin_iter:
+                        proc.stdin.write(chunk)
                     proc.stdin.close()
                 except BrokenPipeError:
                     pass

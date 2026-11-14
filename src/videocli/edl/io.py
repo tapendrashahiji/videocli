@@ -99,7 +99,8 @@ def dumps(edl: EDL) -> str:
 
 def save(ws: Workspace, edl: EDL, op: str | None = None, **details: Any) -> Path:
     if op:
-        edl.history.append(HistoryEntry(op=op, at=now_iso(), **{k: v for k, v in details.items() if v is not None}))
+        clean = {("at_time" if k == "at" else "op_name" if k == "op" else k): v for k, v in details.items() if v is not None}
+        edl.history.append(HistoryEntry(op=op, at=now_iso(), **clean))
     snap(edl)
     edl = validate(json.loads(dumps(edl)), edl.name)  # re-validate after edits
     p = edl_path(ws, edl.name)
