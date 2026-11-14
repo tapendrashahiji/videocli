@@ -292,6 +292,7 @@ def run(
     check: bool = True,
     tool: str = "ffmpeg",
     timeout: float | None = None,
+    cwd: Path | None = None,
 ) -> RunResult:
     """Run ffmpeg (or ffprobe) with ``args``.
 
@@ -317,6 +318,7 @@ def run(
             stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
             stdout=subprocess.PIPE if (capture or progress_total) else subprocess.DEVNULL,
             stderr=subprocess.PIPE,
+            cwd=str(cwd) if cwd else None,
         )
 
         def pump_err() -> None:

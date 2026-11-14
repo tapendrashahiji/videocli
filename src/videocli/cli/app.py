@@ -29,6 +29,25 @@ GLOBAL_FLAGS = {"--json", "--dry-run", "--estimate", "--force", "--quiet", "-q",
 GLOBAL_VALUED = {"--workspace", "--progress", "--jobs", "--provider"}
 
 
+# Options whose value is optional (``--cut-silence`` alone or ``--cut-silence min=1.2``).
+OPTIONAL_VALUE = {"--cut-silence", "--cut-fillers"}
+
+
+def fill_optional_values(argv: list[str]) -> list[str]:
+    out: list[str] = []
+    for i, tok in enumerate(argv):
+        if tok == "--":
+            out += argv[i:]
+            break
+        if tok in OPTIONAL_VALUE:
+            nxt = argv[i + 1] if i + 1 < len(argv) else None
+            if nxt is None or nxt.startswith("-") or "=" not in nxt:
+                out.append(tok + "=")
+                continue
+        out.append(tok)
+    return out
+
+
 def hoist_globals(argv: list[str]) -> list[str]:
     front: list[str] = []
     rest: list[str] = []
@@ -140,6 +159,16 @@ def _internal_error(exc: BaseException) -> dict:
     }
 
 
+def _interrupted() -> None:
+    from videocli.cli.output import emit_error
+
+    if state.json:
+        emit_error({"code": "INTERRUPTED", "message": "Interrupted.", "hint": "Re-run the same command to resume.",
+                    "retryable": True, "details": {}})
+    else:
+        sys.stderr.write("\ninterrupted\n")
+
+
 def _click_classes() -> dict[str, tuple[type, ...]]:
     """Exception classes from Click and from Typer's vendored copy of Click (typer >= 0.26)."""
     import importlib
@@ -170,17 +199,19 @@ def main(argv: list[str] | None = None) -> int:
     state.reset()
     state.argv = raw
     state.json = detect_json_mode(raw)
-    args = hoist_globals(raw)
+    args = hoist_globals(fill_optional_values(raw))
     state.command = _guess_command(args)
     code = 0
     try:
         rv = app(args=args, prog_name="videocli", standalone_mode=False)
         code = rv if isinstance(rv, int) else 0
+        if code == 130:  # typer returns Exit(130) for KeyboardInterrupt in non-standalone mode
+            _interrupted()
     except VideoCliError as exc:
         emit_error(exc.to_dict())
         code = exc.exit_code
     except KeyboardInterrupt:
-        sys.stderr.write("\ninterrupted\n")
+        _interrupted()
         code = 130
     except BrokenPipeError:
         try:
@@ -205,8 +236,10 @@ def main(argv: list[str] | None = None) -> int:
             code = 2
         elif isinstance(exc, k["exit"]):
             code = int(getattr(exc, "exit_code", getattr(exc, "code", 0)) or 0)
+            if code == 130:  # typer turns KeyboardInterrupt into Exit(130)
+                _interrupted()
         elif isinstance(exc, k["abort"]):
-            sys.stderr.write("\ninterrupted\n")
+            _interrupted()
             code = 130
         else:
             emit_error(_internal_error(exc))

@@ -11,6 +11,8 @@ from typing import Any
 #: One registry of every error code with a one-line description. Exported by
 #: ``videocli commands`` so agents can look codes up.
 ERROR_CODES: dict[str, str] = {
+    # 130: interrupted
+    "INTERRUPTED": "The command was interrupted; re-run it to resume where it stopped",
     # 1: runtime failure
     "INTERNAL_ERROR": "An unexpected error; the log file named in details has the traceback",
     "FFMPEG_FAILED": "ffmpeg or ffprobe exited with an error",

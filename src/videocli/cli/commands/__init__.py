@@ -1,5 +1,5 @@
 """Command modules. Each exposes ``register(app)`` and imports only light modules at top level."""
 
-from videocli.cli.commands import env, perception, probe
+from videocli.cli.commands import edit, env, perception, probe
 
-COMMAND_MODULES = [env, probe, perception]
+COMMAND_MODULES = [env, probe, perception, edit]

@@ -36,54 +36,54 @@ class Settings(BaseModel):
     model_config = {"extra": "forbid", "validate_assignment": True}
 
     # general
-    provider: str = Field("agent", description="Default model provider for work orders: agent, local or api")
+    provider: str = Field(default="agent", description="Default model provider for work orders: agent, local or api")
     jobs: int = Field(default_factory=_cpu_jobs, ge=1, le=64, description="Parallel workers for renders and batch work")
-    list_limit: int = Field(50, ge=1, description="Default --limit for list outputs")
-    ffmpeg: str = Field("", description="Path to ffmpeg (empty: auto-detect)")
-    ffprobe: str = Field("", description="Path to ffprobe (empty: auto-detect)")
+    list_limit: int = Field(default=50, ge=1, description="Default --limit for list outputs")
+    ffmpeg: str = Field(default="", description="Path to ffmpeg (empty: auto-detect)")
+    ffprobe: str = Field(default="", description="Path to ffprobe (empty: auto-detect)")
 
     # transcript
-    transcript__model: str = Field("small", description="faster-whisper model name or path")
-    transcript__language: str = Field("", description="Language code; empty means auto-detect")
-    transcript__device: str = Field("auto", description="auto, cpu or cuda")
-    transcript__compute_type: str = Field("auto", description="ctranslate2 compute type; auto picks per device")
-    transcript__low_confidence: float = Field(0.5, ge=0, le=1, description="Word probability below which a word is low-confidence")
-    transcript__low_confidence_share: float = Field(0.15, ge=0, le=1, description="Share of low-confidence words that triggers a warning")
+    transcript__model: str = Field(default="small", description="faster-whisper model name or path")
+    transcript__language: str = Field(default="", description="Language code; empty means auto-detect")
+    transcript__device: str = Field(default="auto", description="auto, cpu or cuda")
+    transcript__compute_type: str = Field(default="auto", description="ctranslate2 compute type; auto picks per device")
+    transcript__low_confidence: float = Field(default=0.5, ge=0, le=1, description="Word probability below which a word is low-confidence")
+    transcript__low_confidence_share: float = Field(default=0.15, ge=0, le=1, description="Share of low-confidence words that triggers a warning")
 
     # silence and loudness
-    silence__threshold_db: float = Field(-35.0, le=0, description="silencedetect noise threshold in dB")
-    silence__min_duration: float = Field(0.3, gt=0, description="Shortest silence to record, in seconds")
-    loudness__target_lufs: float = Field(-14.0, le=0, description="Integrated loudness target for renders")
-    loudness__true_peak_db: float = Field(-1.0, le=0, description="True-peak ceiling for renders")
-    loudness__warn_lu: float = Field(6.0, gt=0, description="Warn when source loudness is this far from target")
+    silence__threshold_db: float = Field(default=-35.0, le=0, description="silencedetect noise threshold in dB")
+    silence__min_duration: float = Field(default=0.3, gt=0, description="Shortest silence to record, in seconds")
+    loudness__target_lufs: float = Field(default=-14.0, le=0, description="Integrated loudness target for renders")
+    loudness__true_peak_db: float = Field(default=-1.0, le=0, description="True-peak ceiling for renders")
+    loudness__warn_lu: float = Field(default=6.0, gt=0, description="Warn when source loudness is this far from target")
 
     # planning
-    plan__min_clip: float = Field(0.3, ge=0, description="Drop clips shorter than this after planning")
-    plan__min_cut: float = Field(0.2, ge=0, description="Merge away cuts shorter than this")
-    plan__filler_pad: float = Field(0.04, ge=0, description="Padding around filler-word cuts")
+    plan__min_clip: float = Field(default=0.3, ge=0, description="Drop clips shorter than this after planning")
+    plan__min_cut: float = Field(default=0.2, ge=0, description="Merge away cuts shorter than this")
+    plan__filler_pad: float = Field(default=0.04, ge=0, description="Padding around filler-word cuts")
 
     # render
-    render__crf: int = Field(18, ge=0, le=51, description="x264 CRF for delivery encodes")
-    render__x264_preset: str = Field("medium", description="x264 preset for delivery encodes")
-    render__intermediate_crf: int = Field(12, ge=0, le=51, description="x264 CRF for intermediate segments")
-    render__fade_ms: int = Field(15, ge=0, le=500, description="Audio fade at every clip edge, in ms")
+    render__crf: int = Field(default=18, ge=0, le=51, description="x264 CRF for delivery encodes")
+    render__x264_preset: str = Field(default="medium", description="x264 preset for delivery encodes")
+    render__intermediate_crf: int = Field(default=12, ge=0, le=51, description="x264 CRF for intermediate segments")
+    render__fade_ms: int = Field(default=15, ge=0, le=500, description="Audio fade at every clip edge, in ms")
 
     # sheets
-    sheet__cols: int = Field(6, ge=1, le=20, description="Contact-sheet columns")
-    sheet__width: int = Field(1600, ge=320, le=4096, description="Contact-sheet width in pixels")
-    sheet__max_tiles: int = Field(48, ge=1, le=400, description="Tiles per contact sheet before paginating")
+    sheet__cols: int = Field(default=6, ge=1, le=20, description="Contact-sheet columns")
+    sheet__width: int = Field(default=1600, ge=320, le=4096, description="Contact-sheet width in pixels")
+    sheet__max_tiles: int = Field(default=48, ge=1, le=400, description="Tiles per contact sheet before paginating")
 
     # verify thresholds
-    verify__duration_tolerance: float = Field(0.1, ge=0, description="Allowed output duration error in seconds (plus one frame per clip)")
-    verify__av_sync_tolerance: float = Field(0.045, ge=0, description="Allowed audio/video stream length difference in seconds")
-    verify__black_min: float = Field(0.5, gt=0, description="Shortest black stretch to report, in seconds")
-    verify__freeze_min: float = Field(2.0, gt=0, description="Shortest frozen stretch to report, in seconds")
-    verify__click_threshold: float = Field(0.35, gt=0, description="Sample step (full scale 1.0) that counts as a click at a join")
-    verify__silence_gap: float = Field(2.0, gt=0, description="Longest acceptable silence in the output, in seconds")
-    verify__loudness_tolerance: float = Field(2.0, gt=0, description="Allowed integrated-loudness error in LU")
+    verify__duration_tolerance: float = Field(default=0.1, ge=0, description="Allowed output duration error in seconds (plus one frame per clip)")
+    verify__av_sync_tolerance: float = Field(default=0.045, ge=0, description="Allowed audio/video stream length difference in seconds")
+    verify__black_min: float = Field(default=0.5, gt=0, description="Shortest black stretch to report, in seconds")
+    verify__freeze_min: float = Field(default=2.0, gt=0, description="Shortest frozen stretch to report, in seconds")
+    verify__click_threshold: float = Field(default=0.35, gt=0, description="Sample step (full scale 1.0) that counts as a click at a join")
+    verify__silence_gap: float = Field(default=2.0, gt=0, description="Longest acceptable silence in the output, in seconds")
+    verify__loudness_tolerance: float = Field(default=2.0, gt=0, description="Allowed integrated-loudness error in LU")
 
     # cache
-    cache__max_gb: float = Field(20.0, gt=0, description="Soft size limit for render, bake and LUT caches")
+    cache__max_gb: float = Field(default=20.0, gt=0, description="Soft size limit for render, bake and LUT caches")
 
 
 def key_to_field(key: str) -> str:
