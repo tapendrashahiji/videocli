@@ -1,0 +1,49 @@
+{
+  "$defs": {
+    "Range_": {
+      "additionalProperties": true,
+      "properties": {
+        "start": {
+          "title": "Start",
+          "type": "number"
+        },
+        "end": {
+          "title": "End",
+          "type": "number"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "Range_",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "properties": {
+    "total": {
+      "title": "Total",
+      "type": "integer"
+    },
+    "truncated": {
+      "title": "Truncated",
+      "type": "boolean"
+    },
+    "silences": {
+      "items": {
+        "$ref": "#/$defs/Range_"
+      },
+      "title": "Silences",
+      "type": "array"
+    }
+  },
+  "required": [
+    "total",
+    "truncated",
+    "silences"
+  ],
+  "title": "SilencesData",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/command/silences.json"
+}

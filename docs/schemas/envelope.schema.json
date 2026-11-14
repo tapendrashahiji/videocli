@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "Artifact": {
+      "properties": {
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "Warning_": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "Warning_",
+      "type": "object"
+    }
+  },
+  "description": "Success envelope (SPEC \u00a76.1).",
+  "properties": {
+    "ok": {
+      "const": true,
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "command": {
+      "title": "Command",
+      "type": "string"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    },
+    "data": {
+      "title": "Data"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/Artifact"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/Warning_"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "next": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Next",
+      "type": "array"
+    }
+  },
+  "required": [
+    "ok",
+    "command",
+    "version",
+    "data",
+    "artifacts",
+    "warnings",
+    "next"
+  ],
+  "title": "Envelope",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/envelope.json"
+}

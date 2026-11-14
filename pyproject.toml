@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "videocli"
+dynamic = ["version"]
+description = "A command-line video editor built for AI agents: facts as files, decisions as an EDL, rendered by ffmpeg and checked by the tool itself."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "videocli contributors" }]
+keywords = ["video", "ffmpeg", "editing", "agent", "cli", "edl"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Multimedia :: Video :: Non-Linear Editor",
+]
+# The `base` group (SPEC §4.2). Heavy optional groups are installed by `videocli setup`.
+dependencies = [
+  "typer>=0.12",
+  "rich>=13",
+  "pydantic>=2.6",
+  "platformdirs>=4",
+  "numpy>=1.24",
+  "pillow>=10",
+  "opencv-python-headless>=4.8",
+  "scenedetect>=0.6.4",
+  "faster-whisper>=1.0",
+  "tomli>=2; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+perception = ["onnxruntime>=1.17"]
+diarize = []
+music = []
+stems = []
+ocio = ["opencolorio>=2.3"]
+manim = ["manim>=0.18"]
+html = []
+matte = []
+otio = ["opentimelineio>=0.17"]
+dev = ["pytest>=8", "ruff>=0.5", "pyright>=1.1.370"]
+
+[project.scripts]
+videocli = "videocli.cli.app:main"
+
+[project.urls]
+Homepage = "https://github.com/tapendrashahiji/videocli"
+Issues = "https://github.com/tapendrashahiji/videocli/issues"
+
+[tool.hatch.version]
+path = "src/videocli/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/videocli"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/videocli", "tests", "docs", "eval", "README.md", "LICENSE", "install.sh", "install.ps1"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501", "B008", "SIM108", "SIM115", "UP007", "UP045", "E731", "B023"]
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
+reportMissingImports = "warning"
+reportMissingModuleSource = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not slow' -q"
+markers = [
+  "slow: loads real models or renders long media (deselected by default; run with -m slow)",
+]

@@ -1,0 +1,37 @@
+{
+  "additionalProperties": true,
+  "properties": {
+    "schema": {
+      "title": "Schema",
+      "type": "string"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "path": {
+      "title": "Path",
+      "type": "string"
+    },
+    "summary": {
+      "additionalProperties": true,
+      "title": "Summary",
+      "type": "object"
+    },
+    "artifacts": {
+      "additionalProperties": true,
+      "title": "Artifacts",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "source_id",
+    "path",
+    "summary",
+    "artifacts"
+  ],
+  "title": "IndexFile",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/index.json"
+}

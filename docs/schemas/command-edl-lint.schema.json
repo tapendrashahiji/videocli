@@ -1,0 +1,53 @@
+{
+  "$defs": {
+    "LintIssue": {
+      "additionalProperties": true,
+      "properties": {
+        "rule": {
+          "title": "Rule",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "error",
+            "warn"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule",
+        "severity"
+      ],
+      "title": "LintIssue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "passed": {
+      "title": "Passed",
+      "type": "boolean"
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/LintIssue"
+      },
+      "title": "Issues",
+      "type": "array"
+    }
+  },
+  "required": [
+    "name",
+    "passed",
+    "issues"
+  ],
+  "title": "LintData",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/command/edl-lint.json"
+}

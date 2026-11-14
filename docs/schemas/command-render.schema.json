@@ -1,0 +1,43 @@
+{
+  "additionalProperties": true,
+  "properties": {
+    "output": {
+      "title": "Output",
+      "type": "string"
+    },
+    "edl": {
+      "title": "Edl",
+      "type": "string"
+    },
+    "preset": {
+      "title": "Preset",
+      "type": "string"
+    },
+    "output_duration": {
+      "title": "Output Duration",
+      "type": "number"
+    },
+    "frames": {
+      "title": "Frames",
+      "type": "integer"
+    },
+    "nodes": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Nodes",
+      "type": "object"
+    }
+  },
+  "required": [
+    "output",
+    "edl",
+    "preset",
+    "output_duration",
+    "frames",
+    "nodes"
+  ],
+  "title": "RenderData",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/command/render.json"
+}

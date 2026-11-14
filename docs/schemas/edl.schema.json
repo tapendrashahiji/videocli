@@ -1,0 +1,828 @@
+{
+  "$defs": {
+    "AudioItem": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "role": {
+          "default": "music",
+          "enum": [
+            "music",
+            "sfx",
+            "tone"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "start": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Start",
+          "type": "number"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "at": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "At"
+        },
+        "anchor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Anchor"
+        },
+        "offset": {
+          "default": 0.0,
+          "title": "Offset",
+          "type": "number"
+        },
+        "gain_db": {
+          "default": 0.0,
+          "title": "Gain Db",
+          "type": "number"
+        },
+        "duck_db": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duck Db"
+        },
+        "fade": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Fade",
+          "type": "number"
+        },
+        "fit": {
+          "default": false,
+          "title": "Fit",
+          "type": "boolean"
+        },
+        "locked": {
+          "default": false,
+          "title": "Locked",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "source"
+      ],
+      "title": "AudioItem",
+      "type": "object"
+    },
+    "Captions": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "default": "none",
+          "enum": [
+            "none",
+            "burn",
+            "sidecar"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "style": {
+          "default": "default",
+          "title": "Style",
+          "type": "string"
+        },
+        "max_chars": {
+          "default": 42,
+          "maximum": 120,
+          "minimum": 10,
+          "title": "Max Chars",
+          "type": "integer"
+        },
+        "max_lines": {
+          "default": 2,
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Max Lines",
+          "type": "integer"
+        }
+      },
+      "title": "Captions",
+      "type": "object"
+    },
+    "Clip": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "number"
+        },
+        "end": {
+          "title": "End",
+          "type": "number"
+        },
+        "speed": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "title": "Speed",
+          "type": "number"
+        },
+        "audio": {
+          "$ref": "#/$defs/ClipAudio"
+        },
+        "grade": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Grade"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "locked": {
+          "default": false,
+          "title": "Locked",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "start",
+        "end"
+      ],
+      "title": "Clip",
+      "type": "object"
+    },
+    "ClipAudio": {
+      "additionalProperties": false,
+      "properties": {
+        "gain_db": {
+          "default": 0.0,
+          "title": "Gain Db",
+          "type": "number"
+        },
+        "lead": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Lead",
+          "type": "number"
+        },
+        "lag": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Lag",
+          "type": "number"
+        },
+        "stream": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Stream",
+          "type": "integer"
+        }
+      },
+      "title": "ClipAudio",
+      "type": "object"
+    },
+    "ColorSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "working": {
+          "default": "rec709",
+          "title": "Working",
+          "type": "string"
+        },
+        "output": {
+          "default": "rec709",
+          "title": "Output",
+          "type": "string"
+        }
+      },
+      "title": "ColorSpec",
+      "type": "object"
+    },
+    "CutRecord": {
+      "additionalProperties": false,
+      "description": "Why a source range is absent from the spine (derived reasons for ``edl show``).",
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "start": {
+          "title": "Start",
+          "type": "number"
+        },
+        "end": {
+          "title": "End",
+          "type": "number"
+        },
+        "reason": {
+          "default": "manual",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "start",
+        "end"
+      ],
+      "title": "CutRecord",
+      "type": "object"
+    },
+    "Grade": {
+      "additionalProperties": false,
+      "properties": {
+        "ops": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Ops",
+          "type": "array"
+        }
+      },
+      "title": "Grade",
+      "type": "object"
+    },
+    "Graphic": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "baker": {
+          "default": "titles",
+          "title": "Baker",
+          "type": "string"
+        },
+        "template": {
+          "title": "Template",
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        },
+        "anchor": {
+          "title": "Anchor",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0.0,
+          "title": "Offset",
+          "type": "number"
+        },
+        "duration": {
+          "exclusiveMinimum": 0,
+          "title": "Duration",
+          "type": "number"
+        },
+        "layer": {
+          "default": 0,
+          "title": "Layer",
+          "type": "integer"
+        },
+        "locked": {
+          "default": false,
+          "title": "Locked",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "template",
+        "anchor",
+        "duration"
+      ],
+      "title": "Graphic",
+      "type": "object"
+    },
+    "HistoryEntry": {
+      "additionalProperties": true,
+      "properties": {
+        "op": {
+          "title": "Op",
+          "type": "string"
+        },
+        "at": {
+          "title": "At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op",
+        "at"
+      ],
+      "title": "HistoryEntry",
+      "type": "object"
+    },
+    "Marker": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "minimum": 0,
+          "title": "At",
+          "type": "number"
+        },
+        "kind": {
+          "default": "note",
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "at"
+      ],
+      "title": "Marker",
+      "type": "object"
+    },
+    "Mix": {
+      "additionalProperties": false,
+      "properties": {
+        "target_lufs": {
+          "default": -14.0,
+          "maximum": 0,
+          "title": "Target Lufs",
+          "type": "number"
+        },
+        "true_peak_db": {
+          "default": -1.0,
+          "maximum": 0,
+          "title": "True Peak Db",
+          "type": "number"
+        },
+        "fade_ms": {
+          "default": 15,
+          "maximum": 500,
+          "minimum": 0,
+          "title": "Fade Ms",
+          "type": "integer"
+        },
+        "normalize": {
+          "default": true,
+          "title": "Normalize",
+          "type": "boolean"
+        }
+      },
+      "title": "Mix",
+      "type": "object"
+    },
+    "Output": {
+      "additionalProperties": false,
+      "properties": {
+        "preset": {
+          "default": "source",
+          "title": "Preset",
+          "type": "string"
+        },
+        "container": {
+          "default": "mp4",
+          "enum": [
+            "mp4",
+            "mov",
+            "mkv"
+          ],
+          "title": "Container",
+          "type": "string"
+        },
+        "vcodec": {
+          "const": "h264",
+          "default": "h264",
+          "title": "Vcodec",
+          "type": "string"
+        },
+        "crf": {
+          "default": 18,
+          "maximum": 51,
+          "minimum": 0,
+          "title": "Crf",
+          "type": "integer"
+        },
+        "acodec": {
+          "const": "aac",
+          "default": "aac",
+          "title": "Acodec",
+          "type": "string"
+        },
+        "audio_bitrate": {
+          "default": "192k",
+          "title": "Audio Bitrate",
+          "type": "string"
+        }
+      },
+      "title": "Output",
+      "type": "object"
+    },
+    "Overlay": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "number"
+        },
+        "end": {
+          "title": "End",
+          "type": "number"
+        },
+        "anchor": {
+          "title": "Anchor",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0.0,
+          "title": "Offset",
+          "type": "number"
+        },
+        "mode": {
+          "default": "cover",
+          "enum": [
+            "cover",
+            "pip"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "pos": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pos"
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale"
+        },
+        "opacity": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Opacity",
+          "type": "number"
+        },
+        "mute": {
+          "default": true,
+          "title": "Mute",
+          "type": "boolean"
+        },
+        "grade": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Grade"
+        },
+        "layer": {
+          "default": 0,
+          "title": "Layer",
+          "type": "integer"
+        },
+        "locked": {
+          "default": false,
+          "title": "Locked",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "start",
+        "end",
+        "anchor"
+      ],
+      "title": "Overlay",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "duration": {
+          "minimum": 0,
+          "title": "Duration",
+          "type": "number"
+        },
+        "fps": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fps"
+        },
+        "has_video": {
+          "default": true,
+          "title": "Has Video",
+          "type": "boolean"
+        },
+        "has_audio": {
+          "default": true,
+          "title": "Has Audio",
+          "type": "boolean"
+        },
+        "input_transform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Transform"
+        }
+      },
+      "required": [
+        "path",
+        "duration"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "Tracks": {
+      "additionalProperties": false,
+      "properties": {
+        "main": {
+          "items": {
+            "$ref": "#/$defs/Clip"
+          },
+          "title": "Main",
+          "type": "array"
+        },
+        "overlay": {
+          "items": {
+            "$ref": "#/$defs/Overlay"
+          },
+          "title": "Overlay",
+          "type": "array"
+        },
+        "graphics": {
+          "items": {
+            "$ref": "#/$defs/Graphic"
+          },
+          "title": "Graphics",
+          "type": "array"
+        },
+        "audio": {
+          "items": {
+            "$ref": "#/$defs/AudioItem"
+          },
+          "title": "Audio",
+          "type": "array"
+        }
+      },
+      "title": "Tracks",
+      "type": "object"
+    },
+    "Transition": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "title": "After",
+          "type": "string"
+        },
+        "type": {
+          "default": "dissolve",
+          "enum": [
+            "cut",
+            "dissolve",
+            "fade",
+            "dip"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "duration": {
+          "default": 0.5,
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "Duration",
+          "type": "number"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        }
+      },
+      "required": [
+        "after"
+      ],
+      "title": "Transition",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "videocli.edl/v1",
+      "default": "videocli.edl/v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "rate": {
+      "default": "25/1",
+      "title": "Rate",
+      "type": "string"
+    },
+    "resolution": {
+      "default": [
+        1920,
+        1080
+      ],
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Resolution",
+      "type": "array"
+    },
+    "color": {
+      "$ref": "#/$defs/ColorSpec"
+    },
+    "sources": {
+      "additionalProperties": {
+        "$ref": "#/$defs/SourceRef"
+      },
+      "title": "Sources",
+      "type": "object"
+    },
+    "tracks": {
+      "$ref": "#/$defs/Tracks"
+    },
+    "transitions": {
+      "items": {
+        "$ref": "#/$defs/Transition"
+      },
+      "title": "Transitions",
+      "type": "array"
+    },
+    "grades": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Grade"
+      },
+      "title": "Grades",
+      "type": "object"
+    },
+    "captions": {
+      "$ref": "#/$defs/Captions"
+    },
+    "mix": {
+      "$ref": "#/$defs/Mix"
+    },
+    "markers": {
+      "items": {
+        "$ref": "#/$defs/Marker"
+      },
+      "title": "Markers",
+      "type": "array"
+    },
+    "output": {
+      "$ref": "#/$defs/Output"
+    },
+    "cuts": {
+      "items": {
+        "$ref": "#/$defs/CutRecord"
+      },
+      "title": "Cuts",
+      "type": "array"
+    },
+    "history": {
+      "items": {
+        "$ref": "#/$defs/HistoryEntry"
+      },
+      "title": "History",
+      "type": "array"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "title": "EDL",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/edl.json"
+}

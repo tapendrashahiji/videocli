@@ -1,0 +1,30 @@
+{
+  "additionalProperties": true,
+  "properties": {
+    "total": {
+      "title": "Total",
+      "type": "integer"
+    },
+    "truncated": {
+      "title": "Truncated",
+      "type": "boolean"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "format": {
+      "title": "Format",
+      "type": "string"
+    }
+  },
+  "required": [
+    "total",
+    "truncated",
+    "source_id",
+    "format"
+  ],
+  "title": "TranscriptData",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/command/transcript.json"
+}
