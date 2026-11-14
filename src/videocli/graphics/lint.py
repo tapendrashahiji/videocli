@@ -10,6 +10,9 @@ from videocli.edl.model import EDL
 from videocli.graphics import templates as tp
 from videocli.graphics.timing import reading_time
 
+#: Designs that fill the frame on purpose (a solid or dimmed card): covering screen content is the point.
+FULL_FRAME = {"title-card", "end-card"}
+
 
 def lint(edl: EDL, ws: Any, *, sample_frames: bool = True) -> dict[str, Any]:
     from videocli.graphics.titles import layout
@@ -60,9 +63,13 @@ def lint(edl: EDL, ws: Any, *, sample_frames: bool = True) -> dict[str, Any]:
                 issues.append({"rule": "text_overflows_box", "severity": "warn", "item": g.id})
             if t.placement.get("safe_area", True) and (x0 < margin - 1 or y0 < margin - 1 or x1 > W - margin + 1 or y1 > H - margin + 1):
                 issues.append({"rule": "outside_safe_area", "severity": "warn", "item": g.id, "box": [x0, y0, x1, y1]})
-            if edl.captions.mode == "burn" and y1 > H * 0.75 and (t.design or t.name) in ("lower-third", "callout", "quote"):
-                issues.append({"rule": "overlaps_captions", "severity": "warn", "item": g.id})
-            if use_layout and not ((x1 - x0) >= W * 0.95 and (y1 - y0) >= H * 0.95):
+            caption_pos = str(edl.captions.params.get("position", "auto"))
+            if (edl.captions.mode == "burn" and caption_pos == "bottom" and y1 > H * 0.75
+                    and (t.design or t.name) in ("lower-third", "callout", "quote")):
+                issues.append({"rule": "overlaps_captions", "severity": "warn", "item": g.id,
+                               "fix": f"videocli captions-style {edl.name} --param position=auto"})
+            full_frame = (t.design or t.name) in FULL_FRAME or ((x1 - x0) >= W * 0.95 and (y1 - y0) >= H * 0.95)
+            if use_layout and not full_frame:
                 from videocli.layout.place import occupied, overlap_report
 
                 box = [x0 / W, y0 / H, (x1 - x0) / W, (y1 - y0) / H]

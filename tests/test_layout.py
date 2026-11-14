@@ -236,3 +236,16 @@ def test_person_mask_covers_webcam_bubble():
     b[50:84, 126:157] = 200  # shoulders and bubble edge move below and around the face
     assert change_share(a, b, []) > 0.05
     assert change_share(a, b, [[135, 55, 12, 12]]) < 0.01
+
+
+def test_lint_skips_full_frame_cards_and_auto_captions(cli, screen_clip):
+    _edl(cli, screen_clip, "ff")
+    cli.ok("gfx", "add", "ff", "-t", "title-card", "--param", "title=Browse Without a Mouse", "--param", "dim=0.6",
+           "--on", "c0001", "--offset", "0.2", "--duration", "2.5")
+    lt = cli.ok("gfx", "add", "ff", "-t", "lower-third", "--param", "title=Next", "--on", "c0001", "--offset", "3.5", "--duration", "2")
+    cli.ok("captions-style", "ff", "--preset", "karaoke")
+    issues = _issues(cli, "ff")
+    assert not [i for i in issues if i["rule"].startswith("covers_") and i.get("item") == "x0001"]
+    assert not [i for i in issues if i["rule"] == "overlaps_captions"]  # captions move up on their own
+    cli.ok("captions-style", "ff", "--param", "position=bottom")
+    assert [i for i in _issues(cli, "ff") if i["rule"] == "overlaps_captions" and i["item"] == lt["item"]]
