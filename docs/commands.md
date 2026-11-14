@@ -43,6 +43,7 @@ Exit codes: 0, 1, 2, 3, 4 · supports writes, `--dry-run`, `--estimate`
 | `--language CODE` | text |  | Language code; default auto. |
 | `--audio-stream N` | integer |  | Audio stream index. |
 | `--prompt` | text |  | Initial prompt for the speech model (names, jargon). |
+| `--backend` | text |  | whisper (local, default) or elevenlabs (cloud: uploads the audio; needs videocli keys set elevenlabs). |
 | `--profile` | text |  | lecture (default set), artistic or full (adds shots, motion, faces, prosody, music, …). |
 
 ## `videocli assemble`
@@ -144,7 +145,7 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 
 ## `videocli captions-style`
 
-Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=… max_chars=… lines=1|2 position=bottom|top margin=…)
+Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=… max_chars=… lines=1|2 position=auto|bottom|top margin=…)
 
 Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 
@@ -359,7 +360,7 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 
 ## `videocli edl reframe`
 
-Vertical, square or 4:5 output with a crop per shot (center, or subject from face data)
+Vertical, square or 4:5 output with a crop per shot (center, subject from face data, or stack: screen above a face box)
 
 Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 
@@ -367,7 +368,9 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 |---|---|---|---|
 | `NAME` | text | yes |  |
 | `--aspect` | text |  | 9:16, 1:1, 4:5, 4:3 or 16:9. |
-| `--mode` | text |  | center or subject. |
+| `--mode` | text |  | center, subject, or stack (screen on top, face box below). |
+| `--face X,Y,W,H` | text |  | stack: the face/webcam box in the source, fractions 0-1. |
+| `--split` | number |  | stack: share of the height for the screen (default 0.62). |
 | `--clip CLIP_ID` | text |  | Set one clip's crop centre with --x. |
 | `--x` | number |  | Crop centre, 0 (left) to 1 (right). |
 
@@ -752,6 +755,34 @@ List unfinished long-running jobs (interrupted renders resume when re-run)
 
 Exit codes: 0
 
+## `videocli keys remove`
+
+Delete a stored API key
+
+Exit codes: 0, 2 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `SERVICE` | text | yes |  |
+| `--user` | flag |  |  |
+
+## `videocli keys set`
+
+Type an API key at a terminal (hidden) and store it in the project .env (gitignored) or --user
+
+Exit codes: 0, 2 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `SERVICE` | text | yes | elevenlabs |
+| `--user` | flag |  | Store for every project (user config folder) instead of this project. |
+
+## `videocli keys status`
+
+Which API keys are set and where (never the key itself)
+
+Exit codes: 0
+
 ## `videocli log`
 
 Describe every shot through work orders the calling agent (or another provider) answers
@@ -1013,6 +1044,7 @@ Exit codes: 0, 1, 2, 3 · supports writes, `--dry-run`
 | `--profile` | text |  | lecture, finishing, artistic or full. |
 | `--with LIST` | text |  | Extra groups, comma-separated. |
 | `--offline-check` | flag |  | Only report what is missing; download nothing. |
+| `--restore` | flag |  | Reinstall the groups setup added before (after reinstalling videocli). |
 
 ## `videocli sheet`
 
@@ -1266,6 +1298,9 @@ Exit codes: 0, 1, 2, 4, 5
 | `FFMPEG_NOT_FOUND` | No usable ffmpeg or ffprobe was found |
 | `FFMPEG_TOO_OLD` | ffmpeg is older than the minimum version or lacks a required feature |
 | `MODEL_NOT_FOUND` | A required model is not downloaded |
+| `API_KEY_MISSING` | A cloud service needs an API key that a person must enter with videocli keys set |
+| `NEEDS_TERMINAL` | This step must be done by a person at a terminal (for example typing an API key) |
+| `API_REQUEST_FAILED` | A cloud service request failed (network, quota or a rejected key) |
 | `FEATURE_NOT_INSTALLED` | An optional dependency group is not installed |
 | `FILE_NOT_FOUND` | An input file does not exist |
 | `NOT_A_MEDIA_FILE` | ffprobe could not read the input as media |

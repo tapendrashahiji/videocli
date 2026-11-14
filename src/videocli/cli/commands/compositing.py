@@ -107,10 +107,12 @@ def register(app: typer.Typer) -> None:
         summ = ops.speed(edl, clip_id, rate=rate, ramp=ramp, freeze=freeze)
         _op_emit(name, edl, summ, _save(edl, "speed", clip=clip_id, rate=rate, ramp=ramp, freeze=freeze))
 
-    @command(edl_app, "reframe", group="edl", summary="Vertical, square or 4:5 output with a crop per shot (center, or subject from face data)", **W)
+    @command(edl_app, "reframe", group="edl", summary="Vertical, square or 4:5 output with a crop per shot (center, subject from face data, or stack: screen above a face box)", **W)
     def edl_reframe(name: str = typer.Argument(...),
                     aspect: str = typer.Option("9:16", "--aspect", help="9:16, 1:1, 4:5, 4:3 or 16:9."),
-                    mode: str = typer.Option("center", "--mode", help="center or subject."),
+                    mode: str = typer.Option("center", "--mode", help="center, subject, or stack (screen on top, face box below)."),
+                    face: Optional[str] = typer.Option(None, "--face", metavar="X,Y,W,H", help="stack: the face/webcam box in the source, fractions 0-1."),
+                    split: Optional[float] = typer.Option(None, "--split", min=0.3, max=0.85, help="stack: share of the height for the screen (default 0.62)."),
                     clip: Optional[str] = typer.Option(None, "--clip", metavar="CLIP_ID", help="Set one clip's crop centre with --x."),
                     x: Optional[float] = typer.Option(None, "--x", min=0.0, max=1.0, help="Crop centre, 0 (left) to 1 (right).")) -> None:
         from videocli.edl import ops
@@ -132,10 +134,20 @@ def register(app: typer.Typer) -> None:
                     crops[c.id] = round(xs[len(xs) // 2], 3)  # one crop per shot: the median face position
             if not crops:
                 warnings.append({"code": "REFRAME_CENTER_FALLBACK", "message": "No face data (run analyze --only faces, phase 5); using a centre crop."})
-        summ = ops.reframe(edl, aspect, mode, clip, x)
+        face_box = None
+        if face:
+            try:
+                face_box = tuple(float(v) for v in face.split(","))
+            except ValueError:
+                face_box = ()
+            if len(face_box) != 4:
+                from videocli.core.errors import UsageError
+
+                raise UsageError("BAD_ARGUMENT", "--face takes four numbers: X,Y,W,H (fractions of the frame).")
+        summ = ops.reframe(edl, aspect, mode, clip, x, face=face_box, split=split)  # type: ignore[arg-type]
         if mode == "subject" and clip is None and edl.reframe is not None:
             edl.reframe.crops.update(crops)  # type: ignore[possibly-undefined]
-        path = _save(edl, "reframe", aspect=aspect, mode=mode, clip=clip, x=x)
+        path = _save(edl, "reframe", aspect=aspect, mode=mode, clip=clip, x=x, face=face, split=split)
         emit({**summ, "dry_run": state.dry_run}, artifacts=[artifact("edl", path)] if path else [], warnings=warnings,
              next=[f"videocli render {name} --preview -o {name}-{aspect.replace(':', 'x')}.mp4"])
 

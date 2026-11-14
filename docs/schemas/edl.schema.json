@@ -676,7 +676,8 @@
           "default": "center",
           "enum": [
             "center",
-            "subject"
+            "subject",
+            "stack"
           ],
           "title": "Mode",
           "type": "string"
@@ -688,6 +689,43 @@
           "description": "Per-clip horizontal crop centre 0-1 (subject mode)",
           "title": "Crops",
           "type": "object"
+        },
+        "face": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "stack mode: the face (webcam bubble) box in the source, as fractions x,y,w,h",
+          "title": "Face"
+        },
+        "split": {
+          "default": 0.62,
+          "description": "stack mode: share of the output height for the screen (top)",
+          "maximum": 0.85,
+          "minimum": 0.3,
+          "title": "Split",
+          "type": "number"
         }
       },
       "title": "Reframe",
