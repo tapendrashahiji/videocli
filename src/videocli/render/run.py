@@ -244,7 +244,8 @@ def render(
     if burn_captions:
         from videocli.render import captions as capmod
 
-        if work.captions.preset != "clean":
+        layout = {"max_chars", "lines", "position", "margin", "size", "color", "accent", "outline", "font"}
+        if work.captions.preset != "clean" or layout & set(work.captions.params):
             from videocli.graphics import captions_ass
             from videocli.graphics.templates import load_brand
 

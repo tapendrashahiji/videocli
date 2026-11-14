@@ -285,7 +285,27 @@ def register(app: typer.Typer) -> None:
         emit({"brand": b.model_dump(), "dry_run": state.dry_run}, artifacts=[artifact("brand", path)] if path else [])
 
     # ------------------------------------------------------------------ captions style
-    @command(app, "captions-style", summary="Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=…)", **W)
+    def _check_caption_params(p: dict[str, str]) -> None:
+        from videocli.core.errors import UsageError
+
+        def bad(msg: str) -> UsageError:
+            return UsageError("BAD_ARGUMENT", msg, hint="Layout: max_chars=10-80 lines=1|2 position=bottom|top margin=0-0.45")
+
+        checks = {
+            "max_chars": (int, 10, 80), "lines": (int, 1, 2), "margin": (float, 0.0, 0.45), "size": (float, 6, 400),
+        }
+        for k, (kind, lo, hi) in checks.items():
+            if k in p:
+                try:
+                    v = kind(p[k])
+                except ValueError:
+                    raise bad(f"{k} must be a number, got {p[k]!r}.") from None
+                if not lo <= v <= hi:
+                    raise bad(f"{k} must be between {lo} and {hi}, got {p[k]}.")
+        if "position" in p and p["position"] not in ("bottom", "top"):
+            raise bad(f"position must be bottom or top, got {p['position']!r}.")
+
+    @command(app, "captions-style", summary="Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=… max_chars=… lines=1|2 position=bottom|top margin=…)", **W)
     def captions_style(name: str = typer.Argument(...), preset: str = typer.Option("clean", "--preset"),
                        param: list[str] = typer.Option([], "--param", metavar="k=v"), burn: bool = typer.Option(True, "--burn/--no-burn")) -> None:
         from videocli.core.errors import UsageError
@@ -293,9 +313,11 @@ def register(app: typer.Typer) -> None:
 
         if preset not in ("clean", "bold-words", "karaoke", "custom"):
             raise UsageError("BAD_ARGUMENT", "--preset must be clean, bold-words, karaoke or custom.")
+        new = parse_kv(param)
+        _check_caption_params(new)
         edl = _load(name)
         edl.captions.preset = preset  # type: ignore[assignment]
-        edl.captions.params = {**edl.captions.params, **parse_kv(param)}
+        edl.captions.params = {**edl.captions.params, **new}
         edl.captions.mode = "burn" if burn else "sidecar"
         path = _save(edl, "captions style", preset=preset)
         emit({"preset": preset, "params": edl.captions.params, "mode": edl.captions.mode, "dry_run": state.dry_run},

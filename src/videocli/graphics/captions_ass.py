@@ -33,7 +33,7 @@ def _esc(text: str) -> str:
     return text.replace("\\", "\\\\").replace("{", "(").replace("}", ")").replace("\n", "\\N")
 
 
-def group_words(words: list[dict[str, Any]], preset: str, max_chars: int) -> list[list[dict[str, Any]]]:
+def group_words(words: list[dict[str, Any]], preset: str, max_chars: int, lines: int = 2) -> list[list[dict[str, Any]]]:
     cues: list[list[dict[str, Any]]] = []
     cur: list[dict[str, Any]] = []
     per = 3 if preset == "bold-words" else None
@@ -45,7 +45,7 @@ def group_words(words: list[dict[str, Any]], preset: str, max_chars: int) -> lis
             if per is not None:
                 brk = len(cur) >= per or gap > 0.4 or punct
             else:
-                brk = text_len > max_chars * 2 or gap > 0.8 or (punct and cur[-1]["word"].endswith((".", "?", "!")) and len(cur) >= 3) \
+                brk = text_len > max_chars * lines or gap > 0.8 or (punct and cur[-1]["word"].endswith((".", "?", "!")) and len(cur) >= 3) \
                     or w["end"] - cur[0]["start"] > 6.0
             if brk:
                 cues.append(cur)
@@ -62,8 +62,13 @@ def build(words: list[dict[str, Any]], *, preset: str, size: tuple[int, int], du
     W, H = size
     S = min(W, H)
     vertical = H > W
-    font_size = int(params.get("size", S * (0.065 if preset == "bold-words" else 0.05)))
-    margin_v = int(H * (0.22 if vertical else 0.08))
+    font_size = int(float(params.get("size", S * (0.065 if preset == "bold-words" else 0.05))))
+    # Layout: chars per line, lines per cue, top or bottom, distance from that edge (fraction of height).
+    max_chars = int(params.get("max_chars", max_chars))
+    n_lines = int(params.get("lines", 2))
+    position = str(params.get("position", "bottom"))
+    margin_v = int(H * float(params.get("margin", 0.22 if vertical else 0.08)))
+    alignment = 8 if position == "top" else 2
     margin_h = int(W * max(0.05, brand.safe_margin))
     primary = params.get("color", brand.colors.get("secondary", "#ffffff"))
     accent = params.get("accent", brand.colors.get("accent", "#e63946"))
@@ -80,10 +85,10 @@ def build(words: list[dict[str, Any]], *, preset: str, size: tuple[int, int], du
     prim = _ass_color(accent) if preset == "karaoke" else _ass_color(primary)
     sec = _ass_color(primary)
     head.append(f"Style: Default,{fontname},{font_size},{prim},{sec},{_ass_color(outline)},&H80000000,{bold},0,0,0,100,100,0,0,1,"
-                f"{max(2, font_size // 14)},0,2,{margin_h},{margin_h},{margin_v},1")
+                f"{max(2, font_size // 14)},0,{alignment},{margin_h},{margin_h},{margin_v},1")
     head += ["", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
     lines = []
-    cues = group_words(words, preset, max_chars)
+    cues = group_words(words, preset, max_chars, n_lines)
     for i, c in enumerate(cues):
         start = c[0]["start"]
         end = max(c[-1]["end"] + 0.15, start + MIN_CUE)

@@ -202,3 +202,32 @@ def test_brand_change_updates_graphics(cli, av_clip):
               if n.kind == "bake")
     tv = tool_versions()
     assert k1.compute_key(tv) != k2.compute_key(tv)
+
+
+def test_caption_layout_params():
+    from videocli.graphics.captions_ass import build
+
+    words = [{"start": i * 0.3, "end": i * 0.3 + 0.25, "word": f"word{i:02d}"} for i in range(40)]
+
+    def dialogue_lens(ass):
+        return [len(re.sub(r"\{[^}]*\}", "", x.split(",", 9)[9]).strip()) for x in ass.splitlines() if x.startswith("Dialogue:")]
+
+    import re
+
+    wide = build(words, preset="karaoke", size=(640, 360), duration=20, brand=tp.Brand())
+    narrow = build(words, preset="karaoke", size=(640, 360), duration=20, brand=tp.Brand(),
+                   params={"max_chars": "20", "lines": "1", "position": "top", "margin": "0.05"})
+    assert max(dialogue_lens(narrow)) <= 20 < max(dialogue_lens(wide))
+    style = next(x for x in narrow.splitlines() if x.startswith("Style:")).split(",")
+    assert style[18] == "8" and style[21] == str(int(360 * 0.05))  # top-centre, margin 5% of height
+    assert next(x for x in wide.splitlines() if x.startswith("Style:")).split(",")[18] == "2"
+
+
+def test_caption_layout_params_validated(cli, av_clip):
+    _edl_with_transcript(cli, av_clip, "cl")
+    code, env = cli("captions-style", "cl", "--preset", "karaoke", "--param", "lines=3")
+    assert code == 2 and "lines" in env["error"]["message"]
+    code, env = cli("captions-style", "cl", "--param", "position=left")
+    assert code == 2
+    d = cli.ok("captions-style", "cl", "--preset", "karaoke", "--param", "max_chars=32", "--param", "lines=1")
+    assert d["params"] == {"max_chars": "32", "lines": "1"}
