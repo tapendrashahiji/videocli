@@ -68,6 +68,8 @@ class FasterWhisper:
             return self._run(audio, model, "cpu", compute, language, initial_prompt, on_progress)
 
     def _run(self, audio, model, device, compute, language, initial_prompt, on_progress):
+        if device == "cuda":
+            preload_cuda_libraries()
         from faster_whisper import WhisperModel
 
         from videocli.setup.profiles import whisper_model_path
@@ -88,6 +90,60 @@ class FasterWhisper:
             })
             on_progress(seg.end / total)
         return {"language": info.language, "language_probability": info.language_probability, "segments": out, "device": device}
+
+
+def nvidia_library_dirs() -> list[Path]:
+    """lib folders of NVIDIA's pip wheels (nvidia-cublas-cu12, nvidia-cudnn-cu12) in this environment."""
+    import importlib.util
+
+    dirs = []
+    for pkg in ("nvidia.cublas", "nvidia.cudnn", "nvidia.cuda_runtime", "nvidia.cuda_nvrtc"):
+        try:
+            spec = importlib.util.find_spec(pkg)
+        except (ImportError, ValueError):
+            spec = None
+        if spec and spec.submodule_search_locations:
+            for loc in spec.submodule_search_locations:
+                lib = Path(loc) / ("bin" if __import__("sys").platform == "win32" else "lib")
+                if lib.is_dir():
+                    dirs.append(lib)
+    return dirs
+
+
+_PRELOADED = False
+
+
+def preload_cuda_libraries() -> list[str]:
+    """Load cuBLAS/cuDNN from NVIDIA's pip wheels so CTranslate2 finds them without LD_LIBRARY_PATH.
+
+    CTranslate2 opens ``libcublas.so.12`` and ``libcudnn*.so.9`` by name; a library already loaded
+    with that name is reused, so loading the wheel copies first is enough.
+    """
+    global _PRELOADED
+    if _PRELOADED:
+        return []
+    import ctypes
+    import sys
+
+    loaded = []
+    for d in nvidia_library_dirs():
+        if sys.platform == "win32":  # pragma: no cover
+            import os
+
+            os.add_dll_directory(str(d))
+            loaded.append(str(d))
+            continue
+        # dependencies first: cudart, cublasLt, cublas, then cudnn (whose sub-libraries load lazily)
+        order = ["libcudart", "libnvrtc", "libcublasLt", "libcublas", "libcudnn"]
+        libs = sorted(d.glob("lib*.so*"), key=lambda p: next((i for i, k in enumerate(order) if p.name.startswith(k)), 99))
+        for lib in libs:
+            try:
+                ctypes.CDLL(str(lib), mode=ctypes.RTLD_GLOBAL)
+                loaded.append(lib.name)
+            except OSError:
+                pass
+    _PRELOADED = True
+    return loaded
 
 
 def _is_cuda_runtime_error(exc: BaseException) -> bool:

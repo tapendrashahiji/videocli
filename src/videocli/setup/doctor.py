@@ -89,6 +89,11 @@ def report(model: str = "small", skill_check: bool = True) -> dict[str, Any]:
         except ImportError:  # pragma: no cover - agent package arrives in phase 4
             skill = None
 
+    gpu = _gpu()
+    if gpu["cuda"] and not groups.get("gpu"):
+        warnings.append({"code": "GPU_RUNTIME_MISSING",
+                         "message": "An NVIDIA GPU is present but the CUDA 12 runtime is not installed; transcription runs on the CPU."})
+        fix.append("videocli setup --with gpu   # optional: GPU transcription")
     ready = bool(ff["ok"] and fp["ok"] and groups["base"] and models[f"whisper-{model}"])
     out: dict[str, Any] = {
         "python": platform.python_version(),
@@ -99,7 +104,7 @@ def report(model: str = "small", skill_check: bool = True) -> dict[str, Any]:
         "groups": groups,
         "group_missing": group_missing,
         "licences": licences,
-        "gpu": _gpu(),
+        "gpu": gpu,
         "ready": ready,
         "fix": list(dict.fromkeys(fix)),
     }
