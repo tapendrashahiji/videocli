@@ -229,12 +229,17 @@ def download_whisper(name: str) -> Path:
         from videocli.setup import live
 
         def fetch() -> None:
+            import logging
+
+            # No token is needed for public models; the hub's nag line breaks the progress bar.
+            logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+            os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 download_model(name, output_dir=str(target))
 
         size_mb = live.WHISPER_SIZES_MB.get(name)
-        live.watch_download(fetch, target, size_mb * 1024**2 if size_mb else None)
+        live.watch_download(fetch, target, size_mb * 1024**2 if size_mb else None, extra=live.hf_cache_dirs())
     except Exception as exc:  # network, proxy, disk
         raise RuntimeFailure(
             "DOWNLOAD_FAILED",

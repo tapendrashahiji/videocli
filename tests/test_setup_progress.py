@@ -88,3 +88,24 @@ def test_bar_without_fraction_shows_activity():
     sink.event({"event": "progress", "step": "pip:gpu", "message": "12.0 MB · 3.0 MB/s · 0:04"})
     out = buf.getvalue()
     assert "pip:gpu …" in out and "0:04" in out and "%" not in out
+
+
+def test_watch_download_counts_staging_cache(monkeypatch, tmp_path):
+    """Bytes staged in a download cache (Xet) count before the model file appears."""
+    monkeypatch.setattr(live, "HEARTBEAT", 0.05)
+    buf = _json_events(monkeypatch)
+    target, cache = tmp_path / "model", tmp_path / "xet"
+    target.mkdir()
+    cache.mkdir()
+
+    def fetch():
+        for i in range(4):
+            (cache / f"chunk{i}").write_bytes(b"x" * 250_000)
+            time.sleep(0.08)
+        (target / "model.bin").write_bytes(b"x" * 1_000_000)  # final copy at the end
+
+    with progress.step_ctx("model:x"):
+        live.watch_download(fetch, target, 1_000_000, extra=[cache])
+    evs = [e for e in _parse(buf) if e["event"] == "progress"]
+    assert any(0 < e.get("bytes_done", 0) < 1_000_000 for e in evs[:-1])
+    assert evs[-1]["bytes_done"] == 1_000_000  # not double-counted
