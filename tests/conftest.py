@@ -7,6 +7,7 @@ import os
 import subprocess
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 
@@ -115,3 +116,37 @@ def hlg_clip(media_dir) -> Path:
         "-c:v", "libx264", "-pix_fmt", "yuv420p10le",
         "-color_primaries", "bt2020", "-color_trc", "arib-std-b67", "-colorspace", "bt2020nc", "-color_range", "tv",
     )
+
+
+@pytest.fixture(scope="session")
+def counter_clip(media_dir) -> Path:
+    """5 s at 25 fps; frame N carries N as 8 black/white stripes (bit k = stripe k), plus a 440 Hz tone."""
+    p = media_dir / "counter.mkv"
+    if not p.exists():
+        ff(
+            "-f", "lavfi", "-i", "color=c=black:s=64x64:r=25:d=5,format=yuv420p,geq=lum='if(bitand(N,pow(2,floor(X/8))),235,16)':cb=128:cr=128",
+            "-f", "lavfi", "-i", "sine=f=440:sample_rate=48000:d=5",
+            "-c:v", "libx264", "-qp", "0", "-pix_fmt", "yuv420p", "-g", "10", "-c:a", "pcm_s16le", str(p),
+        )
+    return p
+
+
+def frame_values(path: Path) -> list[int]:
+    out = subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", str(path), "-vf", "scale=64:64,format=gray", "-f", "rawvideo", "-"],
+        capture_output=True, check=True,
+    ).stdout
+    frames = np.frombuffer(out, dtype=np.uint8).reshape(-1, 64, 64)
+    vals = []
+    for f in frames:
+        stripes = [f[16:48, k * 8 + 2: k * 8 + 6].mean() > 128 for k in range(8)]
+        vals.append(sum(1 << k for k, on in enumerate(stripes) if on))
+    return vals
+
+
+def stream_durations(path: Path) -> dict[str, float]:
+    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,duration", "-of", "json", str(path)],
+                         capture_output=True, check=True, text=True).stdout
+    return {s["codec_type"]: float(s["duration"]) for s in json.loads(out)["streams"]}
+
+
