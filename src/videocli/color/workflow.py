@@ -104,7 +104,8 @@ def auto(ws: Workspace, edl: EDL, *, balance: bool, match: bool, reference: str 
     for sid, rgb in pix.items():
         ops = stacks[sid]
         if ref_rgb is not None:
-            ref_src = edl.clip(reference).source if reference and edl.clip(reference) else (edl.tracks.main[0].source if not reference_image else None)
+            rc = edl.clip(reference) if reference else None
+            ref_src = rc.source if rc is not None else (edl.tracks.main[0].source if not reference_image else None)
             if sid != ref_src:
                 cur = np.clip(apply_stack(rgb, ops), 0, 1)
                 cdl = match_cdl(cur, ref_rgb, strength)
@@ -144,7 +145,9 @@ def preview_split(ws: Workspace, edl: EDL, out_dir: Path, clip_id: str | None = 
         src = edl.sources[c.source]
         t = clip_times(c, 1)
         p = extract_many(Path(src.path), t, ws.source_dir(c.source) / "frames", width=640)[0]
-        img = cv2.imread(str(p))[:, :, ::-1].astype(np.float64) / 255.0
+        raw = cv2.imread(str(p))
+        assert raw is not None
+        img = raw[:, :, ::-1].astype(np.float64) / 255.0
         h, w = img.shape[:2]
         ops = lut_ops(stack_for(edl, c.grade))
         graded = np.clip(apply_stack(img.reshape(-1, 3), ops), 0, 1).reshape(h, w, 3) if ops else img
@@ -171,7 +174,9 @@ def candidates(ws: Workspace, edl: EDL, n: int, out_dir: Path, clip_id: str | No
         shots = scopes_for_edl(ws, e)
         first = next((c for c in e.tracks.main if not clip_id or c.id == clip_id), e.tracks.main[0])
         p = extract_many(Path(e.sources[first.source].path), clip_times(first, 1), ws.source_dir(first.source) / "frames", width=320)[0]
-        img = cv2.imread(str(p))[:, :, ::-1].astype(np.float64) / 255.0
+        raw = cv2.imread(str(p))
+        assert raw is not None
+        img = raw[:, :, ::-1].astype(np.float64) / 255.0
         h, w = img.shape[:2]
         g = np.clip(apply_stack(img.reshape(-1, 3), lut_ops(stack_for(e, first.grade))), 0, 1).reshape(h, w, 3)
         tiles.append(g)
