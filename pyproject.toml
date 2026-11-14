@@ -33,6 +33,7 @@ dependencies = [
   "numpy>=1.24",
   "pillow>=10",
   "opencv-python-headless>=4.8,<5",  # 5.x dropped the Haar face detector used by the faces analyzer
+  "opencv-python>=4.8,<5",  # scenedetect depends on opencv-python; keep it on 4.x too so cv2 has CascadeClassifier
   "scenedetect>=0.6.4",
   "faster-whisper>=1.0",
   "tomli>=2; python_version < '3.11'",
