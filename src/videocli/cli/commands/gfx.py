@@ -370,19 +370,27 @@ def register(app: typer.Typer) -> None:
             raise bad(f"position must be auto, bottom or top, got {p['position']!r}.")
 
     @command(app, "captions-style", summary="Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=… max_chars=… lines=1|2 position=auto|bottom|top margin=… box=1)", **W)
-    def captions_style(name: str = typer.Argument(...), preset: str = typer.Option("clean", "--preset"),
-                       param: list[str] = typer.Option([], "--param", metavar="k=v"), burn: bool = typer.Option(True, "--burn/--no-burn")) -> None:
+    def captions_style(name: str = typer.Argument(...),
+                       preset: Optional[str] = typer.Option(None, "--preset", help="clean, bold-words, karaoke or custom (default: keep the current one)."),
+                       param: list[str] = typer.Option([], "--param", metavar="k=v", help="Changes only these keys; the others are kept."),
+                       unset: list[str] = typer.Option([], "--unset", metavar="KEY", help="Remove a parameter (back to its default)."),
+                       burn: Optional[bool] = typer.Option(None, "--burn/--no-burn", help="Default: keep the current mode.")) -> None:
         from videocli.core.errors import UsageError
         from videocli.graphics.templates import parse_kv
 
-        if preset not in ("clean", "bold-words", "karaoke", "custom"):
+        if preset is not None and preset not in ("clean", "bold-words", "karaoke", "custom"):
             raise UsageError("BAD_ARGUMENT", "--preset must be clean, bold-words, karaoke or custom.")
         new = parse_kv(param)
         _check_caption_params(new)
         edl = _load(name)
-        edl.captions.preset = preset  # type: ignore[assignment]
-        edl.captions.params = {**edl.captions.params, **new}
-        edl.captions.mode = "burn" if burn else "sidecar"
+        if preset is not None:
+            edl.captions.preset = preset  # type: ignore[assignment]
+        edl.captions.params = {k: v for k, v in {**edl.captions.params, **new}.items() if k not in unset}
+        if burn is not None:
+            edl.captions.mode = "burn" if burn else "sidecar"
+        elif edl.captions.mode == "none":
+            edl.captions.mode = "burn"  # styling captions the first time turns burning on
+        preset = edl.captions.preset
         path = _save(edl, "captions style", preset=preset)
         emit({"preset": preset, "params": edl.captions.params, "mode": edl.captions.mode, "dry_run": state.dry_run},
              artifacts=[artifact("edl", path)] if path else [], next=[f"videocli render {name} --burn-captions -o {name}.mp4"])

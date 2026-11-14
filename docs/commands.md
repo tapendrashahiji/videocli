@@ -152,9 +152,10 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | Name | Type | Required | Help |
 |---|---|---|---|
 | `NAME` | text | yes |  |
-| `--preset` | text |  |  |
-| `--param k=v` | text |  |  |
-| `--burn` | flag |  |  |
+| `--preset` | text |  | clean, bold-words, karaoke or custom (default: keep the current one). |
+| `--param k=v` | text |  | Changes only these keys; the others are kept. |
+| `--unset KEY` | text |  | Remove a parameter (back to its default). |
+| `--burn` | flag |  | Default: keep the current mode. |
 
 ## `videocli commands`
 
