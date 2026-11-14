@@ -285,7 +285,7 @@ def probe_path(path: Path, source_id: str = "000000000000") -> ProbeResult:
 def probe(ws: Workspace, src: Source, *, force: bool = False) -> tuple[ProbeResult, Path, bool]:
     """Probe a registered source, using the cached artifact when fresh. Returns (result, path, cached)."""
     out = ws.source_dir(src.id) / "probe.json"
-    key = analysis_key(src.id, "probe", VERSION, {})
+    key = analysis_key(src.id, "probe", VERSION, {"params": {}, "inputs": {}})  # same shape as analyze.base.key_for
     if not force and is_fresh(out, key):
         doc = read_artifact(out) or {}
         body = {k: v for k, v in doc.items() if k not in ("key", "created", "tool_version", "params")}
