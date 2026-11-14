@@ -144,7 +144,7 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 
 ## `videocli captions-style`
 
-Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=…)
+Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=… max_chars=… lines=1|2 position=bottom|top margin=…)
 
 Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 
