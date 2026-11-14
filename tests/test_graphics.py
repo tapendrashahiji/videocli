@@ -251,3 +251,22 @@ def test_caption_two_lines_break_balanced():
                 assert len(part.strip()) <= 18, (preset, text)
         if preset != "bold-words":  # bold-words shows 3 words at a time
             assert any("\\N" in t for t in lines), preset
+
+
+def test_scale_param_shrinks_lower_third():
+    from videocli.graphics.titles import layout
+
+    t = tp.get(None, "lower-third")
+
+    def box(scale):
+        p = tp.resolve_params(t, {"title": "Shift + ?", "subtitle": "Show all shortcuts", "scale": scale}, tp.Brand())
+        b = layout(t, p, tp.Brand(), 640, 360).box
+        return b[2] - b[0], b[3] - b[1], b[0]
+
+    w1, h1, x1 = box(1.0)
+    w6, h6, x6 = box(0.6)
+    assert w6 < w1 * 0.7 and h6 < h1 * 0.7 and x6 == x1  # smaller, same anchor
+    from videocli.core.errors import UsageError
+
+    with pytest.raises(UsageError):
+        tp.resolve_params(t, {"title": "x", "scale": 5}, tp.Brand())

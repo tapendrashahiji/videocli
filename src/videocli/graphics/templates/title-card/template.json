@@ -24,6 +24,12 @@
       "min": 0,
       "max": 1
     },
+    "scale": {
+      "type": "number",
+      "default": 1.0,
+      "min": 0.4,
+      "max": 2.5
+    },
     "animation": {
       "type": "choice",
       "choices": [
