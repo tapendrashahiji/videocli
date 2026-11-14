@@ -214,3 +214,25 @@ def test_objects_from_reader_reach_windows_and_lint(cli, screen_clip, monkeypatc
     assert w["objects"][0]["label"] == "laptop"
     cli.ok("gfx", "add", "ob", "-t", "lower-third", "--param", "title=Hi", "--on", "c0001", "--offset", "0.5", "--place", "keep")
     assert any(i["rule"] == "covers_object" for i in _issues(cli, "ob"))
+
+
+def test_same_text_tolerates_ocr_jitter():
+    from videocli.layout.analyzer import _same_text
+
+    a = [{"text": "5 tools for senior engineers (C projec", "box": [0.2, 0.01, 0.3, 0.02]},
+         {"text": "Helpful keymaps", "box": [0.27, 0.43, 0.2, 0.04]}, {"text": "口", "box": [0.0, 0.0, 0.01, 0.01]}]
+    b = [{"text": "5 tools for senior engineers gC X projec", "box": [0.2, 0.012, 0.3, 0.02]},
+         {"text": "Helpful keymaps", "box": [0.27, 0.43, 0.2, 0.04]}]
+    assert _same_text(a, b)
+    c = [{"text": "Tab management", "box": [0.27, 0.43, 0.2, 0.04]}, b[0]]
+    assert not _same_text(a, c)
+
+
+def test_person_mask_covers_webcam_bubble():
+    from videocli.layout.analyzer import change_share
+
+    a = np.zeros((90, 160), np.uint8)
+    b = a.copy()
+    b[50:84, 126:157] = 200  # shoulders and bubble edge move below and around the face
+    assert change_share(a, b, []) > 0.05
+    assert change_share(a, b, [[135, 55, 12, 12]]) < 0.01
