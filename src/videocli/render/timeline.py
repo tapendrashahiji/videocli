@@ -61,6 +61,7 @@ class Compiled:
     bakes: list[Node] = field(default_factory=list)
     warnings: list[dict[str, str]] = field(default_factory=list)
     clip_frames: list[tuple[str, int, int]] = field(default_factory=list)
+    pix_fmt: str = "yuv420p"
 
     @property
     def nodes(self) -> list[Node]:
@@ -139,7 +140,7 @@ def _media(edl: EDL, clip: Clip, bakes: dict[str, Node]) -> tuple[dict[str, Any]
 def compile_timeline(
     edl: EDL, preset: presets.Preset, *, crf: int, x264_preset: str, normalize: bool = True,
     labels: dict[str, str] | None = None, speech: list[tuple[float, float]] | None = None,
-    room_tone: dict[str, Any] | None = None, stems: bool = False,
+    room_tone: dict[str, Any] | None = None, stems: bool = False, grades_dir: Any = None,
 ) -> Compiled:
     rate = Rate.parse(edl.rate)
     fps = rate.value
@@ -147,6 +148,17 @@ def compile_timeline(
     warnings: list[dict[str, str]] = []
     plans, total = plan_clips(edl, fps)
     by_id = {p.clip.id: p for p in plans}
+    from videocli.color import render as cr
+
+    graded = cr.timeline_graded(edl)
+    pix = "yuv420p10le" if graded else "yuv420p"
+
+    def grade(source: str, key: str | None, uid: str) -> tuple[list[str], list[str], dict[str, Any]]:
+        """Filters for one picture input; labels inside window graphs are unique per input."""
+        if not graded:
+            return [], [], {}
+        return cr.filters(edl, source, key, grades_dir, "g" + uid)
+
     crop = None
     if edl.reframe is not None:
         crop = edl.reframe
@@ -207,8 +219,12 @@ def compile_timeline(
             mp, mins, extra = _media(edl, p.clip, bakes)
             params = {
                 "source": p.clip.source, "start": t, "speed": u.speed, "rate": str(rate), "size": [w, h], "frames": n,
-                "pix_fmt": "yuv420p", "crf": crf, "x264_preset": x264_preset, "has_video": src.has_video,
+                "pix_fmt": pix, "crf": crf, "x264_preset": x264_preset, "has_video": src.has_video,
             }
+            pre, post, gk = grade(p.clip.source, p.clip.grade, f"{len(chunks)}")
+            if gk:
+                params["grade"] = gk
+                extra = {**extra, "pre": pre, "post": post}
             if u.freeze:
                 params["hold"] = True
             cx = crop_x(p.clip)
@@ -230,6 +246,10 @@ def compile_timeline(
             mp, mins, ex = _media(edl, pp.clip, bakes)
             b = {"source": pp.clip.source, "start": t, "speed": u.speed, "has_video": src.has_video, "hold": u.freeze,
                  "crop": ([crop.aspect, crop_x(pp.clip)] if crop is not None else None), **mp}
+            pre, post, gk = grade(pp.clip.source, pp.clip.grade, f"{len(chunks)}b{len(bases)}")
+            if gk:
+                b["grade"] = gk
+                extra.setdefault("grades", {})[str(len(bases))] = {"pre": pre, "post": post}
             if mins:
                 b["input"] = len(ins)
                 ins.extend(mins)
@@ -249,10 +269,15 @@ def compile_timeline(
         lays = []
         for a, _b, ov in [(a, b, ov) for a, b, ov in layers if a <= f0 and f1 <= b]:
             t = ms(ov.start + (f0 - a) / float(fps))
-            lays.append({"source": ov.source, "start": t, "mode": ov.mode, "pos": ov.pos, "scale": ov.scale,
-                         "opacity": ov.opacity, "id": ov.id, "path_index": len(extra["paths"])})
+            lay = {"source": ov.source, "start": t, "mode": ov.mode, "pos": ov.pos, "scale": ov.scale,
+                   "opacity": ov.opacity, "id": ov.id, "path_index": len(extra["paths"])}
+            _pre, post, gk = grade(ov.source, ov.grade, f"{len(chunks)}l{len(lays)}")
+            if gk:
+                lay["grade"] = gk
+                extra.setdefault("layer_grades", {})[str(len(lays))] = post
+            lays.append(lay)
             extra["paths"].append(edl.sources[ov.source].path)
-        params = {"rate": str(rate), "size": [w, h], "frames": n, "pix_fmt": "yuv420p", "crf": crf, "x264_preset": x264_preset,
+        params = {"rate": str(rate), "size": [w, h], "frames": n, "pix_fmt": pix, "crf": crf, "x264_preset": x264_preset,
                   "bases": bases, "layers": lays, "transition": trans}
         from videocli.render.nodes.composite import run_composite
 
@@ -353,5 +378,6 @@ def compile_timeline(
         mix_params["stems"] = True
     mix = Node("mix", mix_params, inputs=lanes + other_nodes, label="mix", runner=nodes.run_mix)
     comp = Compiled(edl, preset, size, rate, chunks, lanes, picture, mix, total, total_samples, list(bakes.values()), warnings)
+    comp.pix_fmt = pix
     comp.clip_frames = [(p.clip.id, p.start, p.frames) for p in plans]
     return comp

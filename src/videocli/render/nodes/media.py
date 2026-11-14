@@ -40,9 +40,10 @@ def timescale(rate: str) -> int:
 ASPECTS = {"16:9": 16 / 9, "9:16": 9 / 16, "1:1": 1.0, "4:5": 0.8, "4:3": 4 / 3}
 
 
-def video_chain(speed: float, rate: str, w: int, h: int, pix_fmt: str, *, crop: list | None = None, hold: bool = False) -> list[str]:
-    """Conform one picture input to the timeline: speed, rate, (hold), reframe crop or fit, format, pad frames."""
-    vf = [f"setpts=(PTS-STARTPTS)/{speed:.6f}", f"fps={rate}"]
+def video_chain(speed: float, rate: str, w: int, h: int, pix_fmt: str, *, crop: list | None = None, hold: bool = False,
+                pre: list[str] | None = None, post: list[str] | None = None) -> list[str]:
+    """Conform one picture input: (input transform), speed, rate, (hold), crop or fit, (grade), format, pad frames."""
+    vf = [*(pre or []), f"setpts=(PTS-STARTPTS)/{speed:.6f}", f"fps={rate}"]
     if hold:
         vf.append("trim=end_frame=1")
     if crop:
@@ -54,7 +55,7 @@ def video_chain(speed: float, rate: str, w: int, h: int, pix_fmt: str, *, crop: 
         ]
     else:
         vf += [f"scale={w}:{h}:force_original_aspect_ratio=decrease:flags=bicubic", f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black"]
-    vf += ["setsar=1", f"format={pix_fmt}", "tpad=stop_mode=clone:stop=-1"]
+    vf += [*(post or []), "setsar=1", f"format={pix_fmt}", "tpad=stop_mode=clone:stop=-1"]
     return vf
 
 
@@ -76,7 +77,8 @@ def run_segment(node: Node, out_dir: Path, inputs: list[Path]) -> str:
     w, h = p["size"]
     out = out_dir / "seg.mp4"
     frames = int(p["frames"])
-    vf = video_chain(p["speed"], p["rate"], w, h, p["pix_fmt"], crop=p.get("crop"), hold=bool(p.get("hold")))
+    vf = video_chain(p["speed"], p["rate"], w, h, p["pix_fmt"], crop=p.get("crop"), hold=bool(p.get("hold")),
+                     pre=p.get("pre"), post=p.get("post"))
     if p.get("label"):
         vf.insert(-1, "subtitles=label.srt:force_style='FontSize=14,Alignment=7,MarginL=8,MarginV=6,Outline=1'")
     if p["has_video"] or p.get("baked") is not None:

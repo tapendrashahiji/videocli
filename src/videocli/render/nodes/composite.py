@@ -59,11 +59,14 @@ def build_graph(p: dict[str, Any]) -> tuple[list[str], str]:
     for k, b in enumerate(p["bases"]):
         bp = dict(b)
         bp["rate"] = rate
+        g = (p.get("grades") or {}).get(str(k), {})
+        b = {**b, "pre": g.get("pre"), "post": g.get("post")}
         if "path_index" in b:
             bp["path"] = paths[b["path_index"]]
         ins = [inputs[b["input"]]] if "input" in b else []
         args += picture_input(bp, ins, b["start"], w, h)
-        chain = video_chain(b["speed"], rate, w, h, "yuv420p", crop=b.get("crop"), hold=bool(b.get("hold")))
+        chain = video_chain(b["speed"], rate, w, h, p["pix_fmt"], crop=b.get("crop"), hold=bool(b.get("hold")),
+                            pre=b.get("pre"), post=b.get("post"))
         lines.append(f"[{idx}:v]{','.join(chain)}[b{k}]")
         labels.append(f"b{k}")
         idx += 1
@@ -80,7 +83,7 @@ def build_graph(p: dict[str, Any]) -> tuple[list[str], str]:
             s = float(lay.get("scale") or 0.33)
             pw = max(16, int(round(w * s / 2)) * 2)
             chain += [f"scale={pw}:-2:flags=bicubic"]
-        chain += ["setsar=1", "format=yuva420p"]
+        chain += [*((p.get("layer_grades") or {}).get(str(j)) or []), "setsar=1", "format=yuva420p"]
         op = float(lay.get("opacity", 1.0))
         if op < 1.0:
             chain.append(f"colorchannelmixer=aa={op:.4f}")
@@ -90,7 +93,7 @@ def build_graph(p: dict[str, Any]) -> tuple[list[str], str]:
         lines.append(f"[{cur}][l{j}]overlay=x={x}:y={y}:format=auto:eof_action=repeat[o{j}]")
         cur = f"o{j}"
         idx += 1
-    lines.append(f"[{cur}]format=yuv420p[out]")
+    lines.append(f"[{cur}]format={p['pix_fmt']}[out]")
     return args, ";\n".join(lines)
 
 

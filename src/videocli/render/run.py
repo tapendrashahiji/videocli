@@ -30,12 +30,12 @@ def check_renderable(edl: EDL) -> None:
     t = edl.tracks
     if t.graphics:
         raise feature_not_available(f"The graphics track ({len(t.graphics)} items)", 8)
-    graded = [c.id for c in t.main if c.grade] + [o.id for o in t.overlay if o.grade]
-    if graded:
-        raise feature_not_available(f"Grades on {', '.join(graded[:5])}", 7)
-    transforms = [sid for sid, s in edl.sources.items() if s.input_transform]
-    if transforms:
-        raise feature_not_available(f"Input colour transforms on sources {', '.join(transforms)}", 7)
+    missing = [x.grade for x in [*t.main, *t.overlay] if x.grade and x.grade not in edl.grades]
+    if missing:
+        raise InputError("EDL_INVALID", f"Unknown grade(s): {', '.join(sorted(set(missing)))}.")
+    for g in edl.grades.values():
+        if any(o.get("op") == "match" for o in g.ops):
+            raise UsageError("BAD_ARGUMENT", "A grade still holds an unresolved 'match' op.", hint="Run: videocli grade match NAME --clip ID --to REF")
     if not t.main:
         raise InputError("EDL_INVALID", f"EDL {edl.name} has no clips on the spine.", hint=f"Run: videocli edl show {edl.name}")
 
@@ -154,6 +154,7 @@ def encode(comp: Compiled, picture: Path, sound: Path, out: Path, *, captions: l
     args = ["-y", "-i", ffmpeg.fpath(picture), "-i", ffmpeg.fpath(sound), "-map", "0:v:0", "-map", "1:a:0"]
     cwd = None
     tmpdir = None
+    tenbit = getattr(comp, "pix_fmt", "yuv420p") != "yuv420p"
     if captions:
         tmpdir = tempfile.TemporaryDirectory(prefix="videocli-captions-")
         cwd = Path(tmpdir.name)
@@ -165,6 +166,11 @@ def encode(comp: Compiled, picture: Path, sound: Path, out: Path, *, captions: l
             "-vf", f"subtitles=captions.srt:original_size={comp.size[0]}x{comp.size[1]}:force_style='{style}'",
             "-c:v", "libx264", "-preset", comp.preset.x264_preset or "medium", "-crf", str(crf), "-pix_fmt", "yuv420p",
         ]
+    elif tenbit:
+        # 10-bit intermediates (graded timelines) are delivered as 8-bit 4:2:0 for compatibility.
+        crf = comp.preset.crf if comp.preset.crf is not None else comp.edl.output.crf
+        args += ["-c:v", "libx264", "-preset", comp.preset.x264_preset or "medium", "-crf", str(crf), "-pix_fmt", "yuv420p",
+                 "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709"]
     else:
         args += ["-c:v", "copy"]
     args += ["-c:a", "aac", "-b:a", audio_bitrate, "-ar", str(SR)]
@@ -213,7 +219,7 @@ def render(
     x264p = preset.x264_preset or settings.render__x264_preset
     comp = compile_edl(work, preset, crf=crf, x264_preset=x264p, normalize=normalize, labels=labels,
                        speech=speech_ranges(ws, work) if work.tracks.audio else None,
-                       room_tone=room_tone_spec(ws, work), stems=stems)
+                       room_tone=room_tone_spec(ws, work), stems=stems, grades_dir=ws.dir("grades"))
     store = Store(ws.dir("graph"))
     if want_estimate:
         return {"estimate": estimate(comp, store, jobs)}
