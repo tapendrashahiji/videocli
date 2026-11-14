@@ -1,0 +1,46 @@
+{
+  "schema": "videocli.template/v1",
+  "name": "chapter-marker",
+  "baker": "titles",
+  "design": "chapter-marker",
+  "params": {
+    "number": {
+      "type": "string",
+      "default": ""
+    },
+    "title": {
+      "type": "string",
+      "required": true,
+      "max_chars": 36
+    },
+    "accent": {
+      "type": "color",
+      "default": "brand.accent"
+    },
+    "animation": {
+      "type": "choice",
+      "choices": [
+        "wipe",
+        "fade",
+        "slide"
+      ],
+      "default": "wipe"
+    }
+  },
+  "duration": {
+    "default": 3.0,
+    "min": 1.5,
+    "in": 0.4,
+    "out": 0.3
+  },
+  "placement": {
+    "anchor": "top-left",
+    "safe_area": true
+  },
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1",
+    "4:5"
+  ]
+}

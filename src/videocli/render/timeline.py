@@ -140,7 +140,7 @@ def _media(edl: EDL, clip: Clip, bakes: dict[str, Node]) -> tuple[dict[str, Any]
 def compile_timeline(
     edl: EDL, preset: presets.Preset, *, crf: int, x264_preset: str, normalize: bool = True,
     labels: dict[str, str] | None = None, speech: list[tuple[float, float]] | None = None,
-    room_tone: dict[str, Any] | None = None, stems: bool = False, grades_dir: Any = None,
+    room_tone: dict[str, Any] | None = None, stems: bool = False, grades_dir: Any = None, ws: Any = None,
 ) -> Compiled:
     rate = Rate.parse(edl.rate)
     fps = rate.value
@@ -188,6 +188,25 @@ def compile_timeline(
             continue
         layers.append((w[0], w[1], ov))
         edges |= {w[0], w[1]}
+    gfx_layers: list[tuple[int, int, Any, Node]] = []
+    if edl.tracks.graphics:
+        from videocli.graphics.templates import get as get_template
+        from videocli.graphics.templates import load_brand, resolve_params
+        from videocli.render.bakers.graphics import graphic_node
+
+        brand = load_brand(ws)
+        for g in sorted(edl.tracks.graphics, key=lambda x: x.layer):
+            nfr = max(1, round(g.duration * float(fps)))
+            wnd = _window(edl, by_id, g, nfr, fps, total)
+            if wnd is None:
+                warnings.append({"code": "GRAPHIC_SKIPPED", "message": f"Graphic {g.id} is anchored to a missing clip or lies outside the timeline."})
+                continue
+            t = get_template(ws, g.template)
+            params = resolve_params(t, g.params, brand)
+            node = graphic_node(t, params, brand, size, str(rate), wnd[1] - wnd[0] if wnd[1] - wnd[0] < nfr else nfr, g.id,
+                                command=edl.commands.get(t.entry or "") if t.baker == "generic" else None)
+            gfx_layers.append((wnd[0], wnd[1], g, node))
+            edges |= {wnd[0], wnd[1]}
     edges = sorted(e for e in edges if 0 <= e <= total)
 
     def base_at(f: int) -> tuple[str, Any]:
@@ -211,7 +230,7 @@ def compile_timeline(
             continue
         n = f1 - f0
         kind, i = base_at(f0)
-        active = [ov for a, b, ov in layers if a <= f0 and f1 <= b]
+        active = [ov for a, b, ov in layers if a <= f0 and f1 <= b] + [g for a, b, g, _n in gfx_layers if a <= f0 and f1 <= b]
         p = plans[i]
         if kind == "clip" and not active:
             u, t = _src_at(p, f0 - p.start, fps)
@@ -277,6 +296,9 @@ def compile_timeline(
                 extra.setdefault("layer_grades", {})[str(len(lays))] = post
             lays.append(lay)
             extra["paths"].append(edl.sources[ov.source].path)
+        for a, _b, g, gnode in [x for x in gfx_layers if x[0] <= f0 and f1 <= x[1]]:
+            lays.append({"kind": "bake", "id": g.id, "input": len(ins), "start": round((f0 - a) / float(fps), 6)})
+            ins.append(gnode)
         params = {"rate": str(rate), "size": [w, h], "frames": n, "pix_fmt": pix, "crf": crf, "x264_preset": x264_preset,
                   "bases": bases, "layers": lays, "transition": trans}
         from videocli.render.nodes.composite import run_composite

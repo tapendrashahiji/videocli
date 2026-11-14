@@ -318,7 +318,7 @@ def test_render_refuses_source_and_unrenderable(cli, counter_clip):
     d["tracks"]["graphics"] = [{"id": "x0001", "template": "lower-third", "anchor": "c0001", "duration": 1.0}]
     p.write_text(json.dumps(d))
     code, env = cli("render", name, "-o", "t.mp4")
-    assert code == 2 and env["error"]["code"] == "FEATURE_NOT_AVAILABLE" and env["error"]["details"]["phase"] == 8
+    assert code == 2 and env["error"]["code"] == "BAD_ARGUMENT" and "title" in env["error"]["message"]  # validated before baking
 
 
 def test_edl_invalid_on_hand_edit(cli, counter_clip):

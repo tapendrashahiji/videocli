@@ -1,0 +1,52 @@
+{
+  "schema": "videocli.template/v1",
+  "name": "counter",
+  "baker": "titles",
+  "design": "counter",
+  "params": {
+    "from": {
+      "type": "number",
+      "default": 0
+    },
+    "to": {
+      "type": "number",
+      "required": true
+    },
+    "prefix": {
+      "type": "string",
+      "default": ""
+    },
+    "suffix": {
+      "type": "string",
+      "default": ""
+    },
+    "label": {
+      "type": "string",
+      "default": "",
+      "max_chars": 40
+    },
+    "animation": {
+      "type": "choice",
+      "choices": [
+        "fade"
+      ],
+      "default": "fade"
+    }
+  },
+  "duration": {
+    "default": 3.0,
+    "min": 1.5,
+    "in": 0.3,
+    "out": 0.3
+  },
+  "placement": {
+    "anchor": "center",
+    "safe_area": true
+  },
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1",
+    "4:5"
+  ]
+}

@@ -11,7 +11,7 @@ from typing import Any
 from videocli.core import jobs as jobmod
 from videocli.core import progress
 from videocli.core.cache import Store, make_key
-from videocli.core.errors import InputError, UsageError, feature_not_available
+from videocli.core.errors import InputError, UsageError
 from videocli.core.source import check_unchanged, compute_source_id
 from videocli.core.timeutil import ms
 from videocli.core.workspace import Workspace
@@ -28,8 +28,6 @@ SR = nodes.SAMPLE_RATE
 def check_renderable(edl: EDL) -> None:
     """Refuse parts a later phase renders (they validate, but are not drawn yet)."""
     t = edl.tracks
-    if t.graphics:
-        raise feature_not_available(f"The graphics track ({len(t.graphics)} items)", 8)
     missing = [x.grade for x in [*t.main, *t.overlay] if x.grade and x.grade not in edl.grades]
     if missing:
         raise InputError("EDL_INVALID", f"Unknown grade(s): {', '.join(sorted(set(missing)))}.")
@@ -146,7 +144,7 @@ def estimate(comp: Compiled, store: Store, jobs: int) -> dict[str, Any]:
 
 
 def encode(comp: Compiled, picture: Path, sound: Path, out: Path, *, captions: list[tuple[float, float, str]] | None,
-           audio_bitrate: str) -> None:
+           audio_bitrate: str, ass: str | None = None) -> None:
     from videocli.index.views import srt
 
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -155,17 +153,21 @@ def encode(comp: Compiled, picture: Path, sound: Path, out: Path, *, captions: l
     cwd = None
     tmpdir = None
     tenbit = getattr(comp, "pix_fmt", "yuv420p") != "yuv420p"
-    if captions:
+    if captions or ass:
         tmpdir = tempfile.TemporaryDirectory(prefix="videocli-captions-")
         cwd = Path(tmpdir.name)
-        (cwd / "captions.srt").write_text(srt(captions), encoding="utf-8")
-        h = comp.size[1]
-        style = f"FontSize={max(12, int(h / 22))},Outline=2,Shadow=0,MarginV={int(h * 0.06)}"
         crf = comp.preset.crf if comp.preset.crf is not None else comp.edl.output.crf
-        args += [
-            "-vf", f"subtitles=captions.srt:original_size={comp.size[0]}x{comp.size[1]}:force_style='{style}'",
-            "-c:v", "libx264", "-preset", comp.preset.x264_preset or "medium", "-crf", str(crf), "-pix_fmt", "yuv420p",
-        ]
+        if ass:
+            from videocli.graphics.templates import FONTS
+
+            (cwd / "captions.ass").write_text(ass, encoding="utf-8")
+            vf = f"ass=captions.ass:fontsdir={FONTS.as_posix().replace(':', chr(92) + ':')}"
+        else:
+            (cwd / "captions.srt").write_text(srt(captions or []), encoding="utf-8")
+            h = comp.size[1]
+            style = f"FontSize={max(12, int(h / 22))},Outline=2,Shadow=0,MarginV={int(h * 0.06)}"
+            vf = f"subtitles=captions.srt:original_size={comp.size[0]}x{comp.size[1]}:force_style='{style}'"
+        args += ["-vf", vf, "-c:v", "libx264", "-preset", comp.preset.x264_preset or "medium", "-crf", str(crf), "-pix_fmt", "yuv420p"]
     elif tenbit:
         # 10-bit intermediates (graded timelines) are delivered as 8-bit 4:2:0 for compatibility.
         crf = comp.preset.crf if comp.preset.crf is not None else comp.edl.output.crf
@@ -219,7 +221,7 @@ def render(
     x264p = preset.x264_preset or settings.render__x264_preset
     comp = compile_edl(work, preset, crf=crf, x264_preset=x264p, normalize=normalize, labels=labels,
                        speech=speech_ranges(ws, work) if work.tracks.audio else None,
-                       room_tone=room_tone_spec(ws, work), stems=stems, grades_dir=ws.dir("grades"))
+                       room_tone=room_tone_spec(ws, work), stems=stems, grades_dir=ws.dir("grades"), ws=ws)
     store = Store(ws.dir("graph"))
     if want_estimate:
         return {"estimate": estimate(comp, store, jobs)}
@@ -238,10 +240,19 @@ def render(
     _refuse_source_overwrite(ws, edl, out)
 
     cues = None
+    ass = None
     if burn_captions:
         from videocli.render import captions as capmod
 
-        cues = capmod.build(work, transcripts or {})
+        if work.captions.preset != "clean":
+            from videocli.graphics import captions_ass
+            from videocli.graphics.templates import load_brand
+
+            words = capmod.map_words(work, transcripts or {})
+            ass = captions_ass.build(words, preset=work.captions.preset, size=comp.size, duration=comp.duration,
+                                     brand=load_brand(ws), params=work.captions.params, max_chars=work.captions.max_chars)
+        else:
+            cues = capmod.build(work, transcripts or {})
     job_id = "render-" + make_key(edl.model_dump(mode="json", by_alias=True), preset.name, str(out.resolve()), around_cuts, burn_captions)[:12]
     job = jobmod.start(ws, job_id, "render", argv or [])
     t0 = time.monotonic()
@@ -251,7 +262,7 @@ def render(
         with progress.step_ctx("render", nodes=total, cached=cached):
             execute(comp.nodes, store, jobs=jobs, on_done=lambda n: jobmod.update(ws, job, last=f"{n.kind} {n.label}"))
         encode(comp, node_file(comp.picture), node_file(comp.mix), out, captions=cues,
-               audio_bitrate=preset.audio_bitrate or edl.output.audio_bitrate)
+               audio_bitrate=preset.audio_bitrate or edl.output.audio_bitrate, ass=ass)
     except BaseException:
         jobmod.update(ws, job, failed_at=time.time())
         raise
@@ -273,7 +284,7 @@ def render(
         "clips": len(work.tracks.main),
         "nodes": {"total": total, "cached": cached, "ran": total - cached},
         "seconds": round(time.monotonic() - t0, 2),
-        "captions_burned": bool(cues),
+        "captions_burned": bool(cues or ass),
         "loudness_before_lufs": _float((mixinfo.get("measured") or {}).get("input_i")) if mixinfo else None,
         "loudness_target_lufs": edl.mix.target_lufs if (normalize and edl.mix.normalize) else None,
         "around_cuts": around_cuts,
@@ -308,7 +319,8 @@ def explain_item(ws: Workspace, edl: EDL, item_id: str, *, settings: Any, preset
     if edl.item(item_id) is None:
         raise InputError("ITEM_NOT_FOUND", f"No item {item_id!r} in EDL {edl.name}.")
     preset = presets.get(preset_name)
-    comp = compile_edl(edl, preset, crf=preset.crf or edl.output.crf, x264_preset=preset.x264_preset or settings.render__x264_preset)
+    comp = compile_edl(edl, preset, crf=preset.crf or edl.output.crf, x264_preset=preset.x264_preset or settings.render__x264_preset,
+                       grades_dir=ws.dir("grades"), ws=ws)
     finalize(comp.nodes, Store(ws.dir("graph")))
     hits = []
     for n in comp.nodes:

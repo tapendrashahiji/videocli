@@ -181,6 +181,8 @@ class ColorSpec(_Base):
 class Captions(_Base):
     mode: Literal["none", "burn", "sidecar"] = "none"
     style: str = "default"
+    preset: Literal["clean", "bold-words", "karaoke", "custom"] = "clean"
+    params: dict[str, Any] = Field(default_factory=dict)
     max_chars: int = Field(default=42, ge=10, le=120)
     max_lines: int = Field(default=2, ge=1, le=4)
 

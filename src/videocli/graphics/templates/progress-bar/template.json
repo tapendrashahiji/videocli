@@ -1,0 +1,41 @@
+{
+  "schema": "videocli.template/v1",
+  "name": "progress-bar",
+  "baker": "titles",
+  "design": "progress-bar",
+  "params": {
+    "accent": {
+      "type": "color",
+      "default": "brand.accent"
+    },
+    "height": {
+      "type": "number",
+      "default": 0.012,
+      "min": 0.002,
+      "max": 0.05
+    },
+    "animation": {
+      "type": "choice",
+      "choices": [
+        "fade"
+      ],
+      "default": "fade"
+    }
+  },
+  "duration": {
+    "default": 10.0,
+    "min": 1.0,
+    "in": 0.2,
+    "out": 0.2
+  },
+  "placement": {
+    "anchor": "bottom",
+    "safe_area": false
+  },
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1",
+    "4:5"
+  ]
+}

@@ -48,6 +48,19 @@ def fill_optional_values(argv: list[str]) -> list[str]:
     return out
 
 
+# Two-word spellings from the spec that map onto one command name.
+ALIASES = {("captions", "style"): "captions-style"}
+
+
+def apply_aliases(argv: list[str]) -> list[str]:
+    words = [i for i, a in enumerate(argv) if not a.startswith("-")]
+    if len(words) >= 2:
+        i, j = words[0], words[1]
+        if j == i + 1 and (argv[i], argv[j]) in ALIASES:
+            return argv[:i] + [ALIASES[(argv[i], argv[j])]] + argv[j + 1:]
+    return argv
+
+
 def hoist_globals(argv: list[str]) -> list[str]:
     front: list[str] = []
     rest: list[str] = []
@@ -199,7 +212,7 @@ def main(argv: list[str] | None = None) -> int:
     state.reset()
     state.argv = raw
     state.json = detect_json_mode(raw)
-    args = hoist_globals(fill_optional_values(raw))
+    args = apply_aliases(hoist_globals(fill_optional_values(raw)))
     state.command = _guess_command(args)
     code = 0
     try:

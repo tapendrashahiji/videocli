@@ -1,0 +1,47 @@
+{
+  "schema": "videocli.template/v1",
+  "name": "lower-third",
+  "baker": "titles",
+  "design": "lower-third",
+  "params": {
+    "title": {
+      "type": "string",
+      "required": true,
+      "max_chars": 32
+    },
+    "subtitle": {
+      "type": "string",
+      "default": "",
+      "max_chars": 48
+    },
+    "accent": {
+      "type": "color",
+      "default": "brand.accent"
+    },
+    "animation": {
+      "type": "choice",
+      "choices": [
+        "slide",
+        "fade",
+        "wipe"
+      ],
+      "default": "slide"
+    }
+  },
+  "duration": {
+    "default": 4.0,
+    "min": 2.0,
+    "in": 0.4,
+    "out": 0.3
+  },
+  "placement": {
+    "anchor": "bottom-left",
+    "safe_area": true
+  },
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1",
+    "4:5"
+  ]
+}

@@ -75,6 +75,15 @@ def build_graph(p: dict[str, Any]) -> tuple[list[str], str]:
         lines.append(f"[{labels[0]}][{labels[1]}]{_blend(p['transition'])}[t0]")
         cur = "t0"
     for j, lay in enumerate(p["layers"]):
+        if lay.get("kind") == "bake":
+            from videocli.render.graph import entry_file
+
+            args += ["-ss", f"{lay['start']:.6f}", "-i", ffmpeg.fpath(entry_file(inputs[lay["input"]]))]
+            lines.append(f"[{idx}:v]setpts=PTS-STARTPTS,fps={rate},format=yuva420p,tpad=stop_mode=clone:stop=-1[l{j}]")
+            lines.append(f"[{cur}][l{j}]overlay=x=0:y=0:format=auto:eof_action=repeat[o{j}]")
+            cur = f"o{j}"
+            idx += 1
+            continue
         args += ["-ss", f"{lay['start']:.6f}", "-i", ffmpeg.fpath(paths[lay["path_index"]])]
         chain = ["setpts=PTS-STARTPTS", f"fps={rate}"]
         if lay["mode"] == "cover":
