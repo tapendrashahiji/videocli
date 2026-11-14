@@ -56,6 +56,20 @@ def group_words(words: list[dict[str, Any]], preset: str, max_chars: int, lines:
     return cues
 
 
+def break_index(words: list[str], max_chars: int, lines: int) -> int | None:
+    """Word index where a second line starts: the most balanced split, or None for one line."""
+    total = len(" ".join(words))
+    if lines < 2 or total <= max_chars or len(words) < 2:
+        return None
+    best, best_cost = None, None
+    for i in range(1, len(words)):
+        a, b = len(" ".join(words[:i])), len(" ".join(words[i:]))
+        cost = max(a, b) + (0 if a <= max_chars and b <= max_chars else 1000)
+        if best_cost is None or cost < best_cost:
+            best, best_cost = i, cost
+    return best
+
+
 def build(words: list[dict[str, Any]], *, preset: str, size: tuple[int, int], duration: float, brand: Any,
           params: dict[str, Any] | None = None, max_chars: int = 42) -> str:
     params = params or {}
@@ -97,10 +111,13 @@ def build(words: list[dict[str, Any]], *, preset: str, size: tuple[int, int], du
         end = min(end, duration)
         if end <= start:
             continue
+        brk = break_index([w["word"] for w in c], max_chars, n_lines)
         if preset == "karaoke":
             parts = []
             t = start
-            for w in c:
+            for wi, w in enumerate(c):
+                if wi == brk:
+                    parts[-1] = parts[-1].rstrip() + "\\N"
                 lead = max(0.0, w["start"] - t)
                 if lead > 0.005:
                     parts.append(f"{{\\k{int(round(lead * 100))}}}")
@@ -108,10 +125,9 @@ def build(words: list[dict[str, Any]], *, preset: str, size: tuple[int, int], du
                 parts.append(f"{{\\k{dur}}}{_esc(w['word'])} ")
                 t = w["end"]
             text = "".join(parts).rstrip()
-        elif preset == "bold-words":
-            text = _esc(" ".join(w["word"] for w in c).upper())
         else:
-            text = _esc(" ".join(w["word"] for w in c))
+            toks = [_esc(w["word"].upper() if preset == "bold-words" else w["word"]) for w in c]
+            text = " ".join(toks) if brk is None else " ".join(toks[:brk]) + "\\N" + " ".join(toks[brk:])
         lines.append(f"Dialogue: 0,{_ts(start)},{_ts(end)},Default,,0,0,0,,{text}")
     return "\n".join(head + lines) + "\n"
 

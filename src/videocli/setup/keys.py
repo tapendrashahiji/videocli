@@ -9,6 +9,7 @@ CLI's output: :func:`status` reports only whether one is set and where.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import sys
@@ -108,10 +109,8 @@ def _write_env(path: Path, var: str, value: str | None) -> None:
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write("\n".join(kept) + ("\n" if kept else ""))
-    try:
+    with contextlib.suppress(OSError):  # Windows has no POSIX modes
         os.chmod(path, 0o600)
-    except OSError:  # pragma: no cover - Windows
-        pass
 
 
 def ensure_gitignored(folder: Path) -> bool:

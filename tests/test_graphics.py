@@ -231,3 +231,23 @@ def test_caption_layout_params_validated(cli, av_clip):
     assert code == 2
     d = cli.ok("captions-style", "cl", "--preset", "karaoke", "--param", "max_chars=32", "--param", "lines=1")
     assert d["params"] == {"max_chars": "32", "lines": "1"}
+
+
+def test_caption_two_lines_break_balanced():
+    import re
+
+    from videocli.graphics.captions_ass import break_index, build
+
+    assert break_index(["short"], 18, 2) is None
+    assert break_index("mark le help and d ra yu".split(), 18, 1) is None
+    i = break_index("mark le help, and d ra yu, and j k,".split(), 18, 2)
+    assert i is not None
+    words = [{"start": i * 0.3, "end": i * 0.3 + 0.25, "word": w} for i, w in enumerate("mark le help, and d ra yu, and j k,".split())]
+    for preset in ("karaoke", "bold-words", "clean"):
+        ass = build(words, preset=preset, size=(360, 640), duration=10, brand=tp.Brand(), params={"max_chars": "18", "lines": "2"})
+        lines = [x.split(",", 9)[9] for x in ass.splitlines() if x.startswith("Dialogue:")]
+        for text in lines:
+            for part in re.sub(r"\{[^}]*\}", "", text).split("\\N"):
+                assert len(part.strip()) <= 18, (preset, text)
+        if preset != "bold-words":  # bold-words shows 3 words at a time
+            assert any("\\N" in t for t in lines), preset
