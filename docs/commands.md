@@ -187,6 +187,32 @@ Exit codes: 0, 2
 |---|---|---|---|
 | `KEY` | text |  | Show only this key. |
 
+## `videocli critique`
+
+Independent critique: a pack without the builder's reasoning, a rubric (story, pacing, shot choice first), problems with timecodes
+
+Exit codes: 0, 1, 2, 4, 6 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--refs REF` | text |  |  |
+| `--fresh` | flag |  | Require a provider or context separate from the builder. |
+
+## `videocli direct`
+
+Run the artistic loop: assemble → refine → preview → verify → audit → critique → review gate → apply notes, round by round (resumable)
+
+Exit codes: 0, 1, 2, 4, 6 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `-o NAME` | text | yes |  |
+| `--rounds` | integer |  |  |
+| `--gate` | text |  | human (stop for a review page each round) or critic. |
+| `--budget-minutes` | number |  |  |
+| `--approve` | flag |  |  |
+
 ## `videocli doctor`
 
 Report installed tools, groups, models and the commands that fix what is missing
@@ -749,6 +775,40 @@ Exit codes: 0, 1, 4
 |---|---|---|---|
 | `FILE` | text | yes |  |
 
+## `videocli notes apply`
+
+Turn open notes into EDL commands (work order) that change only what each note mentions; ambiguous notes become questions
+
+Exit codes: 0, 2, 4, 6 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `-o NEW` | text | yes |  |
+| `--only ID,…` | text |  |  |
+
+## `videocli notes ingest`
+
+Store notes from the review page (notes.json) or typed lines ('12.4 pacing high: hold longer')
+
+Exit codes: 0, 2, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `FILE` | text | yes |  |
+| `--edl NAME` | text |  |  |
+
+## `videocli notes list`
+
+Notes for an EDL and their status (open, applied, declined, question)
+
+Exit codes: 0
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--open` | flag |  |  |
+
 ## `videocli orders cancel`
 
 Cancel an order
@@ -861,6 +921,18 @@ Exit codes: 0, 1, 2, 3, 4 · supports writes, `--dry-run`, `--estimate`
 | `--no-normalize` | flag |  | Skip loudness normalization. |
 | `--stems` | flag |  | Also write dialogue, music and effects stems next to the output. |
 | `--explain ITEM_ID` | text |  | Show which render nodes an item affects, then stop. |
+
+## `videocli review build`
+
+One HTML page with the preview, cuts and a notes form (no server); --variants for a blind side-by-side choice
+
+Exit codes: 0, 1, 2, 4, 6 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `-o DIR` | text |  |  |
+| `--variants A,B` | text |  |  |
 
 ## `videocli scenes`
 
@@ -1112,6 +1184,16 @@ Exit codes: 0, 2, 4
 | `WHAT retakes|dead-shots|chapters` | text | yes |  |
 | `--limit` | integer |  |  |
 
+## `videocli tournament`
+
+Pairwise blind comparisons (both orders) through a work order; ranking by wins
+
+Exit codes: 0, 1, 2, 4, 6 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAMES A B [C ...]` | text | yes |  |
+
 ## `videocli transcript`
 
 Transcript text in a window: compact, segments, words or srt
@@ -1125,6 +1207,18 @@ Exit codes: 0, 2, 4
 | `--to T` | time |  | Window end (source time). |
 | `--format` | text |  | compact, segments, words or srt. |
 | `--limit` | integer |  | Maximum items (segments or words). |
+
+## `videocli variants`
+
+N versions that differ along one axis (pace, music, open, coverage, look), sharing cached render nodes
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--vary` | text | yes |  |
+| `-n` | integer |  |  |
 
 ## `videocli verify`
 

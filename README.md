@@ -7,10 +7,11 @@ as a file (an EDL), renders with ffmpeg, and checks its own output. Every comman
 non-interactive, prints one JSON document on stdout, and returns a stable exit code. It works
 with Claude Code or any agent that has a shell, and it is pleasant for people too.
 
-> **Status: v0.1 (lectures).** Clean-up of lectures, tutorials and talking heads: silence and
-> filler removal, range edits, captions, verified renders. Compositing, colour, motion
-> graphics and artistic editing are designed ([docs/SPEC.md](docs/SPEC.md)) and arrive in later
-> releases ([docs/phases/](docs/phases/)).
+> **Status: 0.9 — every phase of the plan is implemented** ([docs/phases/](docs/phases/)):
+> lecture clean-up (L1), compositing and sound, colour, motion graphics, deep perception,
+> story and style, and the director loop with human notes. v1.0 is reserved for the published
+> measurements the spec requires (preference tests, critic calibration, Timeline-Bench); see
+> [docs/evaluation.md](docs/evaluation.md). Artistic autonomy is measured, never promised.
 
 ## Install
 

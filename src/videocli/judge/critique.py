@@ -55,7 +55,7 @@ def build_pack(ws: Workspace, edl: EDL, settings: Any, *, refs: list[str] | None
     for k, sp in enumerate(tm.spans[:-1], 1):
         a, b = max(0.0, sp.out_end - 1.0), min(tm.duration, sp.out_end + 1.0)
         times = [round(a + (b - a) * (i + 0.5) / 6, 3) for i in range(6)]
-        frames = list(zip(times, extract_many(preview, times, d / "frames", width=200)))
+        frames = list(zip(times, extract_many(preview, times, d / "frames", width=200), strict=False))
         pcm = decode_pcm(preview, start=a, duration=b - a, rate=8000)
         out = d / f"cut-{k:03d}.jpg"
         strip(frames, np.asarray(pcm, dtype=np.float32), 8000, a, b, out, width=1200)

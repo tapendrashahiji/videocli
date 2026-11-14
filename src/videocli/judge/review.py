@@ -79,7 +79,7 @@ def build(ws: Workspace, edl: EDL, out_dir: Path, settings: Any, variants: list[
         key[labels[slot]] = v.name
     tm = edl.timemap()
     rows = [f'<tr><td><a href="#" onclick="seek({sp.out_end:.3f});return false">{sp.out_end:.2f}s</a></td><td>cut {sp.id} → {nxt.id}</td></tr>'
-            for sp, nxt in zip(tm.spans, tm.spans[1:])] if not variants else []
+            for sp, nxt in zip(tm.spans, tm.spans[1:], strict=False)] if not variants else []
     rows += [f'<tr><td><a href="#" onclick="seek({m.at:.3f});return false">{m.at:.2f}s</a></td><td>{html.escape(m.kind)}: {html.escape(m.text)}</td></tr>'
              for m in edl.markers]
     choice = ""
