@@ -28,3 +28,16 @@
   only from later releases (`FEATURE_NOT_AVAILABLE` names the phase).
 - Accuracy numbers come from the evaluation harness ([evaluation.md](evaluation.md)); they are
   published as measured, including where they disappoint.
+
+## Finishing and artistic work (0.5–0.9)
+
+- Compositing, colour, graphics and the editorial planners are implemented and tested on
+  synthetic material. Their quality on real footage is not yet measured; the targets in
+  [evaluation.md](evaluation.md) decide the autonomy level each material type earns.
+- Without the optional groups, perception is local and light: faces use OpenCV's Haar detector,
+  music uses a built-in beat tracker (sections unlabelled), events are heuristics, and shot
+  descriptions come from the calling agent through work orders.
+- The critic is an agent answering a work order. It is **not** used as a gate until its agreement
+  with human preference is measured (decision X5).
+- Laughter/applause detection, speaker diarization, visual search by text, and matting need the
+  optional `perception`, `diarize` and `matte` groups and their models.

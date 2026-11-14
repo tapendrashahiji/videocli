@@ -4,6 +4,23 @@ All notable changes to videocli. The agent contract (envelope, exit codes, error
 schemas and command interface) follows [semantic versioning](https://semver.org/): before
 1.0, minor versions may change it and say so here.
 
+## 0.9.0 — unreleased
+
+Every phase of the plan is implemented (0–10). v1.0 waits on the published measurements the
+spec requires: the phase-9 style-profile study, critic calibration, the preference win-or-tie
+rate and a Timeline-Bench run (see docs/evaluation.md).
+
+- Deep perception (phase 5): work orders with agent/local/api providers; shots, motion, faces
+  (local, unnamed), prosody, events, music structure, embeddings, slides, diarization (group);
+  `shots`, `people`, `speakers`, `music`, `slides`, `log`, `orders`, `suggest`, visual `find`.
+- Story and style (phase 9): `brief`, `style learn|show|compare`, `story`, `selects`,
+  `stringout`, `assemble` (radio, picture, music), music fitting at downbeats, `refine` passes
+  (coverage, split-edits, action, beats, pacing, match, punch), `audit`.
+- Director loop (phase 10): `critique` (independent pack and rubric), `review build` (static
+  page, blind variants), `notes ingest|list|apply` (scoped, questions for ambiguity),
+  `variants`, `tournament`, `direct`; `python -m eval preference …` and `timeline-bench …`.
+- opencv-python-headless pinned below 5 (5.x dropped the Haar face detector).
+
 ## 0.5.0 — unreleased
 
 Finishing: compositing, sound, colour and motion graphics (phases 6–8).

@@ -100,7 +100,7 @@ class ProsodyAnalyzer(_Base):
                         "pitch_hz": None if np.isnan(P[i]) else round(float(P[i]), 1), "rate_z": round(float(zR[i]), 2),
                         "emphasis": round(float(emph), 3)})
         pauses = [{"start": a["end"], "end": b["start"], "duration": ms(b["start"] - a["end"]), "breath": 0.15 <= b["start"] - a["end"] < 0.6}
-                  for a, b in zip(words, words[1:]) if b["start"] - a["end"] >= 0.15]
+                  for a, b in zip(words, words[1:], strict=False) if b["start"] - a["end"] >= 0.15]
         top = sorted(out, key=lambda w: -w["emphasis"])[: max(1, len(out) // 20)]
         return self._write(ctx, src, params, {"words": out, "pauses": pauses, "emphasised": [{"start": w["start"], "word": w["word"]} for w in top]})
 
@@ -203,11 +203,14 @@ def track_beats(x: np.ndarray, sr: int) -> dict[str, Any]:
     # downbeats: the phase (of 4) whose beats carry the most onset strength
     phase = int(np.argmax([env[beats[k::4]].sum() for k in range(4)])) if len(beats) >= 8 else 0
     down = beats[phase::4]
-    return {"tempo": round(float(tempo), 1), "beats": [ms(b / fps) for b in beats], "downbeats": [ms(b / fps) for b in down], "env": env, "fps": fps}
+    off = 512 / sr  # frame times are window starts; the onset sits near the window centre
+    return {"tempo": round(float(tempo), 1), "beats": [ms(b / fps + off) for b in beats], "downbeats": [ms(b / fps + off) for b in down],
+            "env": env, "fps": fps}
 
 
 class MusicAnalyzer(_Base):
     name = "music"
+    version = 2
     requires: tuple[str, ...] = ("audio",)
     schema = "videocli.music/v1"
 
@@ -226,13 +229,12 @@ class MusicAnalyzer(_Base):
             beats = [ms(float(t)) for t in librosa.frames_to_time(frames, sr=SR)]
             down = beats[::4]
             info = {"tempo": round(float(np.atleast_1d(tempo)[0]), 1), "beats": beats, "downbeats": down}
-            energy = None
         else:
             info = track_beats(x, SR)
-            energy = info.pop("env")
+            info.pop("env")
             info.pop("fps")
         down = info["downbeats"]
-        bars = list(zip(down, down[1:]))
+        bars = list(zip(down, down[1:], strict=False))
         bar_energy = [round(float(np.sqrt(np.mean(x[int(a * SR):int(b * SR)] ** 2) + 1e-12)), 4) for a, b in bars]
         sections = []
         if len(bar_energy) >= 8:
@@ -240,7 +242,7 @@ class MusicAnalyzer(_Base):
             nov = np.abs(np.diff(np.convolve(e, np.ones(4) / 4, mode="same")))
             cuts = sorted(set([0] + [int(i) + 1 for i in np.argsort(-nov)[: max(1, len(e) // 8)]] + [len(e)]))
             labels = "ABCDEFGH"
-            for k, (i, j) in enumerate(zip(cuts, cuts[1:])):
+            for k, (i, j) in enumerate(zip(cuts, cuts[1:], strict=False)):
                 if j <= i:
                     continue
                 lab = "intro" if k == 0 and e[i:j].mean() < e.mean() * 0.8 else ("outro" if j == len(e) and e[i:j].mean() < e.mean() * 0.8 else labels[k % 8])

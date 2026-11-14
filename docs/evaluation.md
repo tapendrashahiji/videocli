@@ -30,3 +30,16 @@ to `DIR/results.json`.
 
 No results are published yet. The plan (phase 4) is at least five openly licensed lectures,
 with the footage type stated for each. Numbers will be published here as measured.
+
+## Artistic work (L2–L4)
+
+- `python -m eval preference build TASKS -o PAGES` makes blind paired pages (human reference vs
+  videocli, order randomised; the key stays outside the pages).
+- `python -m eval preference collect PAGES judgments*.json` then `report PAGES`: win-or-tie rate per
+  task and overall with Wilson 95% intervals, losses grouped by reason, and the judge mix.
+- `python -m eval timeline-bench run BENCH` prints the adapter plan; `report RESULTS.json`
+  summarises the benchmark's own verifier (resolved rate, most-failed tests). Pin the benchmark
+  version in every report.
+
+Release gates (decision X6) are set after the first baseline. Every result is published here,
+including poor ones, with footage type and judge mix.

@@ -58,6 +58,39 @@ def limit_list(items: list[Any], limit: Optional[int]) -> tuple[list[Any], int, 
     return items[:n], len(items), len(items) > n
 
 
+def _visual(src, file: str, query: str, a, b, *, required: bool) -> list[dict[str, Any]]:
+    """Rank shots by how well their logged description matches the query (descriptions come from `log`)."""
+    from videocli.analyze.base import load_artifact
+    from videocli.core.errors import DependencyError
+    from videocli.core.fsutil import rel
+    from videocli.index.search import tokens
+
+    ws = state.workspace()
+    doc = load_artifact(ws, src, "shots", required=False)
+    described = [s for s in (doc or {}).get("shots", []) if s.get("description")]
+    if not described:
+        if not required:
+            return []
+        raise DependencyError("MODEL_NOT_FOUND", "Visual search needs shot descriptions (or a local text-image model).",
+                              hint=f"Run: videocli analyze {q(file)} --profile artistic  then: videocli log {q(file)}")
+    qt = set(tokens(query))
+    out = []
+    for s in described:
+        if (a is not None and s["end"] <= a) or (b is not None and s["start"] >= b):
+            continue
+        dt = set(tokens(s["description"]))
+        stem = lambda w: w[:5]  # noqa: E731 - crude stemming: "working"~"works"
+        overlap = len({stem(w) for w in qt} & {stem(w) for w in dt})
+        if not overlap:
+            continue
+        score = overlap / max(1, len(qt))
+        sheet = ws.source_dir(src.id) / "sheets" / f"shot-{s['id']}.jpg"
+        out.append({"kind": "shot", "shot": s["id"], "start": s["start"], "end": s["end"], "segment": -1, "text": s["description"],
+                    "score": round(score, 3), "sheet": rel(sheet) if sheet.is_file() else None})
+    out.sort(key=lambda h: -h["score"])
+    return out
+
+
 def register(app: typer.Typer) -> None:
     # ------------------------------------------------------------------ analyze
     @command(app, "analyze", summary="Run analyzers (probe, audio, silence, loudness, transcript, scenes) and build the index", writes=True, dry_run=True, estimate=True, exit_codes=(0, 1, 2, 3, 4))
@@ -282,26 +315,34 @@ def register(app: typer.Typer) -> None:
         frm: Optional[str] = typer.Option(None, "--from", metavar="T"),
         to: Optional[str] = typer.Option(None, "--to", metavar="T"),
         limit: Optional[int] = typer.Option(None, "--limit", min=1),
-        mode: str = typer.Option("text", "--mode", help="text (visual search arrives with phase 5)."),
+        mode: str = typer.Option("text", "--mode", help="text (transcript), visual (logged shot descriptions) or both."),
     ) -> None:
         """Search the transcript."""
         from videocli.core.errors import UsageError, feature_not_available
         from videocli.index import search
 
-        if mode != "text":
-            if mode in ("visual", "both"):
-                raise feature_not_available("Visual search", 5)
+        if mode not in ("text", "visual", "both"):
             raise UsageError("BAD_ARGUMENT", f"--mode must be text, visual or both (got {mode!r}).")
         src = resolve_source(file)
-        tr = load_required(src, "transcript", file)
         a, b = window_opts(frm, to)
-        hits = (search.find_regex if regex else search.find_phrase)(tr, query, context=context, frm=a, to=b)
+        hits: list[dict[str, Any]] = []
+        if mode in ("text", "both"):
+            from videocli.analyze.base import load_artifact
+
+            tr = load_artifact(state.workspace(), src, "transcript", required=mode == "text")
+            if tr:
+                hits += [{**h, "kind": "speech"} for h in (search.find_regex if regex else search.find_phrase)(tr, query, context=context, frm=a, to=b)]
+        if mode in ("visual", "both"):
+            hits += _visual(src, file, query, a, b, required=mode == "visual")
+        if mode == "both":
+            hits.sort(key=lambda h: -h.get("score", 1.0))
         shown, total, trunc = limit_list(hits, limit)
         nxt = []
         if shown:
             h = shown[0]
             nxt.append(f"videocli transcript {q(file)} --from {max(0.0, h['start'] - 10):.2f} --to {h['end'] + 10:.2f}")
-        emit({"query": query, "regex": regex, "total": total, "truncated": trunc, "matches": shown}, next=nxt)
+        _ = feature_not_available
+        emit({"query": query, "regex": regex, "mode": mode, "total": total, "truncated": trunc, "matches": shown}, next=nxt)
 
     @formatter("find")
     def _fmt_find(d: dict[str, Any]) -> None:
