@@ -331,6 +331,38 @@ def register(app: typer.Typer) -> None:
             )
         emit(report, artifacts=arts, next=[f"videocli sheet --cuts {edl_name}"] if report["warned"] else [])
 
+    @command(app, "compare", summary="Original and render side by side; the edited half freezes under a CUT badge where material was removed", writes=True, dry_run=False, exit_codes=(0, 1, 2, 4))
+    def compare_cmd(
+        output: str = typer.Argument(..., metavar="OUT", help="Rendered file."),
+        edl_name: str = typer.Option(..., "--edl", metavar="NAME", help="The EDL it was rendered from."),
+        out: Optional[str] = typer.Option(None, "-o", "--output", metavar="FILE.mp4", help="Default: <OUT>-compare.mp4"),
+        drift: bool = typer.Option(False, "--drift", help="Don't sync: play both files from the start (any EDL)."),
+    ) -> None:
+        """Make a side-by-side comparison video for people to watch."""
+        from videocli.core.errors import file_not_found
+        from videocli.core.fsutil import rel
+        from videocli.edl import io
+        from videocli.judge.compare import compare
+
+        rendered = Path(output)
+        if not rendered.is_file():
+            raise file_not_found(output)
+        ws = state.workspace()
+        edl = io.load(ws, edl_name)
+        dest = Path(out) if out else rendered.with_name(rendered.stem + "-compare.mp4")
+        res = compare(ws, rendered, edl, dest, drift=drift)
+        res["output"] = rel(res["output"])
+        emit(res, artifacts=[artifact("video", dest)], next=[f"videocli sheet --cuts {edl_name}"])
+
+    @formatter("compare")
+    def _fmt_compare(d: dict[str, Any]) -> None:
+        c = console()
+        if d["mode"] == "sync":
+            c.print(f"compare {d['output']}  {d['duration']:.1f}s  original left, edited right, in sync")
+            c.print(f"  {len(d['cuts'])} cut(s) marked, {d['removed_seconds']:.1f}s removed; sound is the original's")
+        else:
+            c.print(f"compare {d['output']}  {d['duration']:.1f}s  side by side (not synced); sound is the edit's")
+
     @formatter("verify")
     def _fmt_verify(d: dict[str, Any]) -> None:
         c = console()

@@ -23,6 +23,7 @@ ERROR_CODES: dict[str, str] = {
     "INSTALL_FAILED": "Installing a dependency group failed",
     # 2: usage error
     "BAD_ARGUMENT": "An argument or option is missing or invalid",
+    "COMPARE_NOT_SYNCABLE": "The EDL is not a straight cut-down, so compare cannot line it up with its source; use --drift",
     "FEATURE_NOT_AVAILABLE": "The request needs a feature that a later phase delivers",
     "NOT_SUPPORTED": "The command does not support this mode (for example --estimate)",
     # 3: missing dependency
