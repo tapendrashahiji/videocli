@@ -89,7 +89,7 @@ class Meter:
         fraction = None
         if done is not None:
             self.samples.append((now, done))
-            self.samples = [s for s in self.samples if now - s[0] <= 5.0]  # 5 s window
+            self.samples = [s for s in self.samples if now - s[0] <= 30.0]  # 30 s window: Xet writes in bursts
             t_old, b_old = self.samples[0]
             speed = (done - b_old) / (now - t_old) if now - t_old > 0.2 else 0.0
             parts.append(fmt_mb(done) + (f" / {fmt_mb(self.total)}" if self.total else ""))
