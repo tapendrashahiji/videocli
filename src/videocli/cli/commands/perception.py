@@ -69,6 +69,7 @@ def register(app: typer.Typer) -> None:
         language: Optional[str] = typer.Option(None, "--language", metavar="CODE", help="Language code; default auto."),
         audio_stream: int = typer.Option(0, "--audio-stream", metavar="N", min=0, help="Audio stream index."),
         prompt: Optional[str] = typer.Option(None, "--prompt", help="Initial prompt for the speech model (names, jargon)."),
+        profile: Optional[str] = typer.Option(None, "--profile", help="lecture (default set), artistic or full (adds shots, motion, faces, prosody, music, …)."),
     ) -> None:
         """Analyze a source: facts the agent can read without rendering."""
         from videocli.analyze import base
@@ -82,7 +83,16 @@ def register(app: typer.Typer) -> None:
             from videocli.core.errors import InputError
 
             raise InputError("FILE_NOT_FOUND", f"No media files found in {path}.")
-        names = base.selection(_csv(only), _csv(skip))
+        if profile and profile not in base.PROFILE_SETS:
+            from videocli.core.errors import UsageError
+
+            raise UsageError("BAD_ARGUMENT", f"--profile must be one of {', '.join(base.PROFILE_SETS)}.")
+        names = base.selection(_csv(only), _csv(skip), default=base.PROFILE_SETS[profile or "lecture"])
+        if profile == "full":
+            from videocli.setup.profiles import check_group
+
+            if not check_group("diarize", deep=False).ok:
+                names = [n for n in names if n != "diarize"]
         explicit = set(_csv(only))
         options = {"model": model, "language": language, "audio_stream": audio_stream, "initial_prompt": prompt}
 

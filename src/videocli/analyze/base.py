@@ -63,6 +63,11 @@ class Analyzer(Protocol):
 
 REGISTRY: dict[str, Analyzer] = {}
 DEFAULT_SET = ("probe", "audio", "silence", "loudness", "transcript", "scenes")
+PROFILE_SETS = {
+    "lecture": DEFAULT_SET,
+    "artistic": (*DEFAULT_SET, "motion", "faces", "shots", "prosody", "events", "music", "embed", "slides"),
+    "full": (*DEFAULT_SET, "motion", "faces", "shots", "prosody", "events", "music", "embed", "slides", "diarize"),
+}
 
 
 def register(analyzer: Analyzer) -> Analyzer:
@@ -72,7 +77,7 @@ def register(analyzer: Analyzer) -> Analyzer:
 
 def _load_all() -> None:
     # Importing the modules registers the analyzers. Kept here so `analyze` imports lazily.
-    from videocli.analyze import audio, loudness, scenes, silence, transcript  # noqa: F401
+    from videocli.analyze import audio, hearing, loudness, scenes, silence, transcript, vision  # noqa: F401
     from videocli.media import probe_analyzer  # noqa: F401
 
 
@@ -110,7 +115,8 @@ def selection(only: list[str] | None, skip: list[str] | None, default: tuple[str
     for n in [*(only or []), *(skip or [])]:
         get(n)
     chosen = list(only) if only else [n for n in default if n in REGISTRY]
-    chosen = [n for n in chosen if n not in (skip or [])]
+    skipped = set(skip or [])
+    chosen = [n for n in chosen if n not in skipped and not (set(resolve([n])) & skipped)]
     return chosen
 
 
