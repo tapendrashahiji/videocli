@@ -48,21 +48,33 @@ class FasterWhisper:
         return device, compute
 
     def transcribe(self, wav, *, model, language, initial_prompt, on_progress):
+        from videocli.media.audio import read_wav
+
+        # Hand Whisper the samples ourselves: faster-whisper's own file decoding goes through PyAV,
+        # whose API changes between releases (av 19 dropped open(metadata_errors=...)).
+        audio, _rate = read_wav(Path(wav))
+        if audio.ndim > 1:
+            audio = audio.mean(axis=1)
+        device, compute = self._device()
+        try:
+            return self._run(audio, model, device, compute, language, initial_prompt, on_progress)
+        except RuntimeError as exc:
+            # A GPU without its CUDA runtime (libcublas, cuDNN) fails only once work starts.
+            # With device "auto", fall back to the CPU instead of failing the whole analysis.
+            if device != "cuda" or self.settings.transcript__device != "auto" or not _is_cuda_runtime_error(exc):
+                raise
+            self.fallback = f"GPU unavailable ({str(exc).splitlines()[0]}); transcribed on the CPU"
+            compute = "int8" if self.settings.transcript__compute_type == "auto" else self.settings.transcript__compute_type
+            return self._run(audio, model, "cpu", compute, language, initial_prompt, on_progress)
+
+    def _run(self, audio, model, device, compute, language, initial_prompt, on_progress):
         from faster_whisper import WhisperModel
 
         from videocli.setup.profiles import whisper_model_path
 
         path = whisper_model_path(model)
-        device, compute = self._device()
         jobs = int(getattr(self.settings, "jobs", 4))
         wm = WhisperModel(str(path) if path else model, device=device, compute_type=compute, cpu_threads=jobs, local_files_only=True)
-        # Hand Whisper the samples ourselves: faster-whisper's own file decoding goes through PyAV,
-        # whose API changes between releases (av 19 dropped open(metadata_errors=...)).
-        from videocli.media.audio import read_wav
-
-        audio, _rate = read_wav(Path(wav))
-        if audio.ndim > 1:
-            audio = audio.mean(axis=1)
         segments, info = wm.transcribe(
             audio, language=language or None, initial_prompt=initial_prompt or None,
             word_timestamps=True, vad_filter=True, beam_size=5,
@@ -75,7 +87,12 @@ class FasterWhisper:
                 "words": [{"start": w.start, "end": w.end, "word": w.word, "probability": w.probability} for w in (seg.words or [])],
             })
             on_progress(seg.end / total)
-        return {"language": info.language, "language_probability": info.language_probability, "segments": out}
+        return {"language": info.language, "language_probability": info.language_probability, "segments": out, "device": device}
+
+
+def _is_cuda_runtime_error(exc: BaseException) -> bool:
+    msg = str(exc).lower()
+    return any(k in msg for k in ("libcublas", "libcudnn", "cudnn", "cuda", "cublas", "libcudart"))
 
 
 #: Factory for the transcription backend; tests replace it.
@@ -157,6 +174,8 @@ class TranscriptAnalyzer:
             wav, model=params["model"], language=params["language"], initial_prompt=params["initial_prompt"],
             on_progress=lambda f: progress.update(f),
         )
+        if getattr(backend, "fallback", None):
+            ctx.warn("GPU_FALLBACK", backend.fallback + ". Install the CUDA 12 libraries to use the GPU, or set: videocli config set transcript.device cpu")
         segments = clean_segments(raw.get("segments", []), duration)
         words = [w for s in segments for w in s["words"]]
         low = float(ctx.settings.transcript__low_confidence)

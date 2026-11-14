@@ -151,6 +151,21 @@ def generic(data: Any) -> None:
     if isinstance(data, str):
         _write_stdout(data if data.endswith("\n") else data + "\n")
         return
+    if isinstance(data, dict):
+        # Readable "key  value" lines; nested values as compact JSON.
+        import json as _json
+
+        width = max((len(str(k)) for k in data), default=0)
+        c = console()
+        for k, v in data.items():
+            if isinstance(v, (dict, list)):
+                text = _json.dumps(v, ensure_ascii=False, default=str)
+                if len(text) > 160:
+                    text = text[:157] + "…"
+            else:
+                text = "" if v is None else str(v)
+            c.print(f"[bold]{str(k).ljust(width)}[/bold]  {text}", markup=True, highlight=False)
+        return
     from rich.pretty import Pretty
 
     console().print(Pretty(data, expand_all=False, indent_guides=False))
