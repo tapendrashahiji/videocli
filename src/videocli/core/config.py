@@ -56,6 +56,7 @@ class Settings(BaseModel):
     layout__every: float = Field(default=1.0, gt=0, le=10, description="Seconds between layout samples")
     layout__width: int = Field(default=1280, ge=320, le=3840, description="Frame width for screen-text reading")
     layout__backend: str = Field(default="rapidocr", description="rapidocr (PaddleOCR text) or florence (text and objects, Florence-2)")
+    layout__florence_variant: str = Field(default="quantized", description="Florence-2 ONNX weights: quantized (~0.3 GB), fp16 or fp32 (~1.1 GB)")
     layout__ocr_lang: str = Field(default="en", description="Script for rapidocr: en, ch, devanagari, latin, arabic, cyrillic, …")
 
     # silence and loudness

@@ -55,6 +55,11 @@ def plan(groups: list[str], model: str) -> list[dict[str, Any]]:
             actions.append({"kind": "pip", "group": "base", "packages": ["videocli"], "command": _pip_command(["--force-reinstall", "videocli"])})
     if "base" in groups and profiles.whisper_model_path(model) is None:
         actions.append({"kind": "model", "name": f"whisper-{model}", "licence": "MIT"})
+    if "objects" in groups:
+        from videocli.layout import florence
+
+        if not florence.present():
+            actions.append({"kind": "model", "name": florence.NAME, "variant": florence.variant(), "licence": "MIT"})
     return actions
 
 
@@ -83,6 +88,11 @@ def execute(actions: list[dict[str, Any]], model: str) -> list[dict[str, Any]]:
                         details={"command": cmd},
                     )
                 results.append({**act, "result": "installed"})
+            elif kind == "model" and str(act.get("name", "")).startswith("florence"):
+                from videocli.layout import florence
+
+                path = florence.download(act.get("variant"))
+                results.append({**act, "result": "downloaded", "path": str(path)})
             elif kind == "model":
                 path = profiles.download_whisper(model)
                 results.append({**act, "result": "downloaded", "path": str(path)})

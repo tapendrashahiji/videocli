@@ -62,6 +62,11 @@ GROUPS: dict[str, Group] = {
             licences=(("NVIDIA cuBLAS", "NVIDIA proprietary (redistributable)"), ("NVIDIA cuDNN", "NVIDIA proprietary (redistributable)")),
             size_mb=1200,
         ),
+        Group(
+            "objects", "Objects and UI elements on screen (Florence-2 on onnxruntime, for layout --backend florence)",
+            pip=("onnxruntime>=1.17",), modules=("onnxruntime", "tokenizers"),
+            licences=(("Florence-2 (Microsoft)", "MIT"), ("onnxruntime", "MIT")), size_mb=300, models=("florence-2-base",),
+        ),
         Group("ocio", "Log, HDR and ACES colour", pip=("opencolorio>=2.3",), modules=("PyOpenColorIO",), licences=(("OpenColorIO", "BSD-3-Clause"),), size_mb=40),
         Group("manim", "Diagram and equation graphics", pip=("manim>=0.18",), modules=("manim",), licences=(("manim", "MIT"),), size_mb=300),
         Group(
@@ -164,6 +169,11 @@ def check_group(name: str, *, deep: bool = True) -> GroupStatus:
             missing.append(f"node>={g.node_min} (found {'.'.join(map(str, nv))})")
         elif deep:
             missing += [f"npm:{p}" for p in g.npm if not npm_package_installed(p)]
+    if "florence-2-base" in g.models:
+        from videocli.layout import florence
+
+        if not florence.present():
+            missing.append("model:florence-2-base")
     return GroupStatus(name, not missing, missing)
 
 

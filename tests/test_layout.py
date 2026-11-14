@@ -197,3 +197,20 @@ def test_verify_layout_fails_when_label_unreadable(cli, screen_clip, tmp_path, m
     assert code == 5 and env["error"]["code"] == "VERIFY_FAILED"
     item = env["error"]["details"]["checks"][0]["items"][0]
     assert item["problem"] == "not_readable" and "scale=" in item["fix"]
+
+
+def test_objects_from_reader_reach_windows_and_lint(cli, screen_clip, monkeypatch):
+    from videocli.layout import analyzer
+
+    class WithObject:
+        provenance = "fake"
+
+        def read(self, rgb):
+            return [{"kind": "object", "label": "laptop", "box": [0.02, 0.6, 0.4, 0.35]}]
+
+    monkeypatch.setattr(analyzer, "READER_FACTORY", lambda backend, lang: WithObject())
+    _edl(cli, screen_clip, "ob")
+    w = cli.ok("layout", str(screen_clip))["windows"][0]
+    assert w["objects"][0]["label"] == "laptop"
+    cli.ok("gfx", "add", "ob", "-t", "lower-third", "--param", "title=Hi", "--on", "c0001", "--offset", "0.5", "--place", "keep")
+    assert any(i["rule"] == "covers_object" for i in _issues(cli, "ob"))
