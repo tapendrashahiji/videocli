@@ -264,3 +264,24 @@ def test_faster_whisper_gets_samples_not_a_path(tmp_path, monkeypatch, audio_onl
     out = FasterWhisper(config.load(None)).transcribe(wav, model="small", language=None, initial_prompt=None, on_progress=lambda f: None)
     assert seen["type"] is np.ndarray and seen["dtype"] == np.float32
     assert out["segments"] == []
+
+
+def test_gpu_runtime_missing_falls_back_to_cpu(tmp_path, monkeypatch, audio_only):
+    from videocli.analyze import transcript as tmod
+    from videocli.core import config
+    from videocli.media.audio import extract_analysis_wav
+
+    calls = []
+
+    def fake_run(self, audio, model, device, compute, language, prompt, on_progress):
+        calls.append((device, compute))
+        if device == "cuda":
+            raise RuntimeError("Library libcublas.so.12 is not found or cannot be loaded")
+        return {"language": "en", "language_probability": 1.0, "segments": [], "device": device}
+
+    monkeypatch.setattr(tmod.FasterWhisper, "_run", fake_run)
+    monkeypatch.setattr(tmod.FasterWhisper, "_device", lambda self: ("cuda", "float16"))
+    wav = extract_analysis_wav(audio_only, tmp_path / "a.wav")
+    fw = tmod.FasterWhisper(config.load(None))
+    out = fw.transcribe(wav, model="small", language=None, initial_prompt=None, on_progress=lambda f: None)
+    assert calls == [("cuda", "float16"), ("cpu", "int8")] and out["device"] == "cpu" and "libcublas" in fw.fallback
