@@ -287,11 +287,17 @@ def register(app: typer.Typer) -> None:
         burn_captions: bool = typer.Option(False, "--burn-captions", help="Burn captions re-timed from the transcript."),
         no_normalize: bool = typer.Option(False, "--no-normalize", help="Skip loudness normalization."),
         stems: bool = typer.Option(False, "--stems", help="Also write dialogue, music and effects stems next to the output."),
+        explain: Optional[str] = typer.Option(None, "--explain", metavar="ITEM_ID", help="Show which render nodes an item affects, then stop."),
     ) -> None:
         """Render an EDL to a file."""
         from videocli.render.run import render
 
         edl = _load(name)
+        if explain:
+            from videocli.render.run import explain_item
+
+            emit(explain_item(state.workspace(), edl, explain, settings=state.settings, preset_name="preview" if preview else (preset or edl.output.preset)))
+            return
         out = Path(output)
         res = render(
             state.workspace(), edl, out,

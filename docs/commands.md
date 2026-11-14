@@ -482,6 +482,7 @@ Exit codes: 0, 1, 2, 3, 4 · supports writes, `--dry-run`, `--estimate`
 | `--burn-captions` | flag |  | Burn captions re-timed from the transcript. |
 | `--no-normalize` | flag |  | Skip loudness normalization. |
 | `--stems` | flag |  | Also write dialogue, music and effects stems next to the output. |
+| `--explain ITEM_ID` | text |  | Show which render nodes an item affects, then stop. |
 
 ## `videocli scenes`
 

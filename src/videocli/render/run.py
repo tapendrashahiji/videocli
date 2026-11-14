@@ -295,3 +295,20 @@ def _float(v: Any) -> float | None:
         return round(float(v), 2)
     except (TypeError, ValueError):
         return None
+
+
+def explain_item(ws: Workspace, edl: EDL, item_id: str, *, settings: Any, preset_name: str) -> dict[str, Any]:
+    """Nodes whose output depends on one EDL item (clip, overlay or audio item)."""
+    if edl.item(item_id) is None:
+        raise InputError("ITEM_NOT_FOUND", f"No item {item_id!r} in EDL {edl.name}.")
+    preset = presets.get(preset_name)
+    comp = compile_edl(edl, preset, crf=preset.crf or edl.output.crf, x264_preset=preset.x264_preset or settings.render__x264_preset)
+    finalize(comp.nodes, Store(ws.dir("graph")))
+    hits = []
+    for n in comp.nodes:
+        p = n.params
+        touched = n.label.split("@")[0] == item_id or any(lay.get("id") == item_id for lay in p.get("layers", []))
+        touched = touched or any(o.get("id") == item_id for o in p.get("others", []))
+        if touched:
+            hits.append(n.describe())
+    return {"item": item_id, "nodes": hits, "total_nodes": len(comp.nodes)}
