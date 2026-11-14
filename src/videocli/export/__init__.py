@@ -244,12 +244,63 @@ def to_otio(edl: EDL, out: Path, relative_to: Path | None = None) -> dict[str, A
     return {"clips": len(clips), "duration": ms(dur), "expected_clips": len(plans), "expected_duration": ms(total / fps), "left_out": []}
 
 
+def to_cube(edl: EDL, out: Path, size: int = 33) -> dict[str, Any]:
+    """One .cube per graded clip plus the look, in a folder."""
+    from videocli.color import lut as lutmod
+    from videocli.color.render import stack_for
+
+    out.mkdir(parents=True, exist_ok=True)
+    written = []
+    for c in edl.tracks.main:
+        if not c.grade and "look" not in edl.grades:
+            continue
+        ops = stack_for(edl, c.grade)
+        table = lutmod.compile_stack(ops, size)
+        p = out / f"{c.id}.cube"
+        lutmod.write_cube(p, table, size, title=f"{edl.name} {c.id}")
+        written.append({"clip": c.id, "path": str(p), "grade": c.grade})
+    if "look" in edl.grades:
+        p = out / "look.cube"
+        lutmod.write_cube(p, lutmod.compile_stack(edl.grades["look"].ops, size), size, title=f"{edl.name} look")
+        written.append({"clip": None, "path": str(p), "grade": "look"})
+    back = [lutmod.read_cube(w["path"])[0] for w in written]
+    return {"format": "cube", "output": str(out), "luts": written, "round_check": "pass" if all(b == size for b in back) else "fail"}
+
+
+def to_cdl(edl: EDL, out: Path) -> dict[str, Any]:
+    """ASC CDL (.ccc) for clips whose grade is a pure CDL; the others are listed."""
+    pure, other = [], []
+    blocks = []
+    for c in edl.tracks.main:
+        ops = edl.grades[c.grade].ops if c.grade and c.grade in edl.grades else []
+        if len(ops) == 1 and ops[0]["op"] == "cdl":
+            o = ops[0]
+            def v(x):
+                return " ".join(f"{float(t):.6f}" for t in (x if isinstance(x, (list, tuple)) else [x] * 3))
+            blocks.append(f'  <ColorCorrection id="{c.id}">\n    <SOPNode>\n      <Slope>{v(o.get("slope", 1))}</Slope>\n'
+                          f'      <Offset>{v(o.get("offset", 0))}</Offset>\n      <Power>{v(o.get("power", 1))}</Power>\n    </SOPNode>\n'
+                          f'    <SatNode>\n      <Saturation>{float(o.get("sat", 1)):.6f}</Saturation>\n    </SatNode>\n  </ColorCorrection>')
+            pure.append(c.id)
+        elif ops:
+            other.append(c.id)
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n<ColorCorrectionCollection xmlns="urn:ASC:CDL:v1.01">\n' + "\n".join(blocks) + "\n</ColorCorrectionCollection>\n"
+    atomic_write_text(out, xml)
+    import xml.etree.ElementTree as ET
+
+    n = len(ET.parse(out).getroot())
+    return {"format": "cdl", "output": str(out), "clips": pure, "not_pure_cdl": other, "round_check": "pass" if n == len(pure) else "fail"}
+
+
 WRITERS = {"otio": (to_otio, ".otio"), "fcpxml": (to_fcpxml, ".fcpxml"), "edl": (to_cmx3600, ".edl")}
 
 
 def export(edl: EDL, fmt: str, out: Path | None, relative_to: Path | None) -> dict[str, Any]:
+    if fmt == "cube":
+        return to_cube(edl, out or Path(f"{edl.name}-luts"))
+    if fmt == "cdl":
+        return to_cdl(edl, out or Path(f"{edl.name}.ccc"))
     if fmt not in WRITERS:
-        raise UsageError("BAD_ARGUMENT", f"--to must be one of {', '.join(WRITERS)} (cube and cdl arrive with phase 7).")
+        raise UsageError("BAD_ARGUMENT", "--to must be one of otio, fcpxml, edl, cube or cdl.")
     fn, ext = WRITERS[fmt]
     out = out or Path(f"{edl.name}{ext}")
     res = fn(edl, out, relative_to)

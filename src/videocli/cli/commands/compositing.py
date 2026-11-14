@@ -173,7 +173,7 @@ def register(app: typer.Typer) -> None:
              writes=True, dry_run=False, exit_codes=(0, 1, 2, 3, 4), phase=6)
     def export_cmd(
         name: str = typer.Argument(...),
-        to: str = typer.Option(..., "--to", help="otio, fcpxml or edl (CMX 3600)."),
+        to: str = typer.Option(..., "--to", help="otio, fcpxml, edl (CMX 3600), cube (LUT per clip) or cdl (ASC CDL)."),
         output: Optional[str] = typer.Option(None, "-o", "--output", metavar="PATH"),
         relative_to: Optional[str] = typer.Option(None, "--relative-to", metavar="DIR", help="Write media paths relative to DIR."),
     ) -> None:
@@ -183,6 +183,8 @@ def register(app: typer.Typer) -> None:
         edl = _load(name)
         res = export(edl, to, Path(output) if output else None, Path(relative_to) if relative_to else None)
         warnings: list[dict[str, Any]] = []
+        if res.get("not_pure_cdl"):
+            warnings.append({"code": "EXPORT_PARTIAL", "message": f"Not a pure CDL (use --to cube): {', '.join(res['not_pure_cdl'])}."})
         if res.get("left_out"):
             warnings.append({"code": "EXPORT_PARTIAL", "message": f"Not in the {to} file: {'; '.join(res['left_out'])}."})
         emit(res, artifacts=[artifact(f"export-{to}", res["output"])], warnings=warnings)

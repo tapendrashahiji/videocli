@@ -134,11 +134,12 @@ def op_qualifier(rgb: np.ndarray, hue=(0, 360), sat=(0.0, 1.0), lum=(0.0, 1.0), 
     return rgb + (inner - rgb) * mask[:, None]
 
 
-def op_lut(rgb: np.ndarray, path: str = "", **_: Any) -> np.ndarray:
+def op_lut(rgb: np.ndarray, path: str = "", strength: float = 1.0, **_: Any) -> np.ndarray:
     from videocli.color.lut import apply_cube, read_cube
 
     size, table = read_cube(path)
-    return apply_cube(np.clip(rgb, 0, 1), table, size)
+    out = apply_cube(np.clip(rgb, 0, 1), table, size)
+    return rgb + (out - rgb) * float(strength) if strength != 1.0 else out
 
 
 OPS: dict[str, Callable[..., np.ndarray]] = {
