@@ -132,3 +132,69 @@ def test_stack_face_auto_uses_layout_faces(cli, media_dir, tmp_path, monkeypatch
     d = cli.ok("edl", "reframe", "sfa", "--aspect", "9:16", "--mode", "stack", "--face", "auto")
     fx, fy, fw, fh = d["face"]
     assert 0.78 < fx < 0.85 and 0.6 < fy < 0.7 and 0.14 < fw < 0.18
+
+
+# --------------------------------------------------------------------------- validators
+
+
+def _issues(cli, name):
+    code, env = cli("gfx", "lint", name)
+    d = env["data"] if env["ok"] else env["error"]["details"]
+    return d["issues"]
+
+
+def test_lint_flags_label_on_screen_text(cli, screen_clip):
+    _edl(cli, screen_clip, "lt")
+    d = cli.ok("gfx", "add", "lt", "-t", "lower-third", "--param", "title=Shift + ?", "--on", "c0001", "--offset", "0.5",
+               "--duration", "2", "--place", "keep")
+    rules = {i["rule"]: i for i in _issues(cli, "lt")}
+    assert "covers_screen_text" in rules and rules["covers_screen_text"]["item"] == d["item"]
+    assert rules["covers_screen_text"]["fix"] == f"videocli gfx set lt {d['item']} --place auto"
+    assert "Helpful" in rules["covers_screen_text"]["covers"][0]["text"]
+    cli.ok("gfx", "set", "lt", d["item"], "--place", "auto")
+    assert not [i for i in _issues(cli, "lt") if i["rule"] == "covers_screen_text"]
+
+
+def test_lint_crop_cuts_text(cli, screen_clip):
+    _edl(cli, screen_clip, "cc")
+    cli.ok("edl", "reframe", "cc", "--aspect", "9:16")
+    rules = [i for i in _issues(cli, "cc") if i["rule"] == "crop_cuts_text"]
+    assert rules and rules[0]["clip"] == "c0001" and "--clip c0001 --x" in rules[0]["fix"]
+
+
+def test_verify_layout_pass_and_warn(cli, screen_clip, tmp_path):
+    _edl(cli, screen_clip, "vg")
+    good = cli.ok("gfx", "add", "vg", "-t", "lower-third", "--param", "title=Shift Help", "--on", "c0001", "--offset", "0.3", "--duration", "2.2")
+    assert good["placement"]["moved"]
+    out = tmp_path / "vg.mp4"
+    cli.ok("render", "vg", "-o", str(out))
+    d = cli.ok("verify", str(out), "--edl", "vg", "--checks", "layout")
+    c = d["checks"][0]
+    assert c["status"] == "pass" and c["measured"]["graphics"] == 1 and c["measured"]["unreadable"] == 0
+
+    cli.ok("gfx", "set", "vg", good["item"], "--place", "keep")
+    out2 = tmp_path / "vg2.mp4"
+    cli.ok("render", "vg", "-o", str(out2))
+    d2 = cli.ok("verify", str(out2), "--edl", "vg", "--checks", "layout")  # a warning does not fail verify
+    c2 = d2["checks"][0]
+    assert c2["status"] == "warn" and c2["items"][0]["problem"] == "graphic_covers_screen"
+    assert c2["items"][0]["fix"].endswith("--place auto")
+
+
+def test_verify_layout_fails_when_label_unreadable(cli, screen_clip, tmp_path, monkeypatch):
+    from videocli.layout import analyzer
+
+    _edl(cli, screen_clip, "vu")
+    cli.ok("gfx", "add", "vu", "-t", "lower-third", "--param", "title=Readable", "--on", "c0001", "--offset", "3.2", "--duration", "2")
+    out = tmp_path / "vu.mp4"
+    cli.ok("render", "vu", "-o", str(out))
+
+    class Blind:
+        def read(self, rgb):
+            return []
+
+    monkeypatch.setattr(analyzer, "READER_FACTORY", lambda backend, lang: Blind())
+    code, env = cli("verify", str(out), "--edl", "vu", "--checks", "layout")
+    assert code == 5 and env["error"]["code"] == "VERIFY_FAILED"
+    item = env["error"]["details"]["checks"][0]["items"][0]
+    assert item["problem"] == "not_readable" and "scale=" in item["fix"]

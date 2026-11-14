@@ -62,7 +62,7 @@ def verify(ws: Workspace, output: Path, edl: EDL, *, settings: Any, transcripts:
             raise UsageError("BAD_ARGUMENT", f"Unknown check {n!r}.", hint=f"Checks: {', '.join(ck.CHECKS)}")
     names = [n for n in (only or list(ck.CHECKS)) if n not in (skip or [])]
     pr = probe_path(output)
-    ctx = ck.Context(output=output, edl=edl, probe=pr, settings=settings, transcripts=transcripts)
+    ctx = ck.Context(output=output, edl=edl, probe=pr, settings=settings, transcripts=transcripts, ws=ws)
     if any(n in ck.SCAN_NEEDED for n in names):
         with progress.step_ctx("scan"):
             ctx.scan = ck.scan_output(ctx)

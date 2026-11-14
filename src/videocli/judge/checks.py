@@ -41,6 +41,7 @@ class Context:
     settings: Any
     transcripts: dict[str, Any]
     scan: dict[str, Any] = field(default_factory=dict)  # one-pass detector results
+    ws: Any = None
     source_cache: dict[tuple, list] = field(default_factory=dict)
 
     @property
@@ -405,5 +406,12 @@ CHECKS = {
     "clipped_words": check_clipped_words,
     "legal_range": check_legal_range,
     "added_clipping": check_added_clipping,
+    "layout": lambda ctx: _layout(ctx),
 }
+
+
+def _layout(ctx: Context) -> CheckResult:
+    from videocli.judge.layout_check import check_layout
+
+    return check_layout(ctx)
 SCAN_NEEDED = {"black_frames", "frozen_frames", "silence_gaps", "loudness"}
