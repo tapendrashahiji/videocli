@@ -47,12 +47,36 @@ class Clip(_Base):
     grade: str | None = None
     reason: str | None = None
     locked: bool = False
+    ramp: list[tuple[float, float]] | None = Field(default=None, description="Speed ramp: (position 0-1 in the clip, rate) points")
+    freeze: float = Field(default=0.0, ge=0, le=60, description="Hold the last frame this many seconds")
+    stabilize: float | None = Field(default=None, ge=0, le=1, description="Stabilisation strength (baked)")
 
     @model_validator(mode="after")
     def _order(self) -> Clip:
         if not self.end > self.start:
             raise ValueError(f"clip {self.id}: end ({self.end}) must be after start ({self.start})")
+        if self.ramp is not None:
+            pts = self.ramp
+            if len(pts) < 2 or pts[0][0] != 0.0 or pts[-1][0] != 1.0:
+                raise ValueError(f"clip {self.id}: a ramp needs points from position 0 to 1")
+            if any(b[0] <= a[0] for a, b in zip(pts, pts[1:])):
+                raise ValueError(f"clip {self.id}: ramp positions must increase")
+            if any(not (0.05 <= r <= 20) for _, r in pts):
+                raise ValueError(f"clip {self.id}: ramp rates must be between 0.05 and 20")
         return self
+
+    def pieces(self, n: int = 16) -> list[tuple[float, float, float]]:
+        """Constant-speed pieces (source start, source end, speed). A ramp becomes ``n`` pieces."""
+        if not self.ramp:
+            return [(self.start, self.end, self.speed)]
+        out = []
+        dur = self.end - self.start
+        for k in range(n):
+            p0, p1 = k / n, (k + 1) / n
+            pm = (p0 + p1) / 2
+            rate = _interp(self.ramp, pm)
+            out.append((self.start + p0 * dur, self.start + p1 * dur, rate))
+        return out
 
     @property
     def duration(self) -> float:
@@ -60,7 +84,14 @@ class Clip(_Base):
 
     @property
     def out_duration(self) -> float:
-        return (self.end - self.start) / self.speed
+        return sum((b - a) / sp for a, b, sp in self.pieces()) + self.freeze
+
+
+def _interp(points: list[tuple[float, float]], p: float) -> float:
+    for (p0, r0), (p1, r1) in zip(points, points[1:]):
+        if p0 <= p <= p1:
+            return r0 + (r1 - r0) * (p - p0) / (p1 - p0)
+    return points[-1][1]
 
 
 class Overlay(_Base):
@@ -174,6 +205,20 @@ class Output(_Base):
     audio_bitrate: str = "192k"
 
 
+class Reframe(_Base):
+    aspect: Literal["16:9", "9:16", "1:1", "4:5", "4:3"] = "9:16"
+    mode: Literal["center", "subject"] = "center"
+    crops: dict[str, float] = Field(default_factory=dict, description="Per-clip horizontal crop centre 0-1 (subject mode)")
+
+
+class Sound(_Base):
+    denoise: float = Field(default=0.0, ge=0, le=1)
+    level: bool = False
+    compress: bool = False
+    highpass: float | None = Field(default=None, ge=20, le=400)
+    room_tone: str | None = Field(default=None, description="auto, or a source id / path for a room-tone recording")
+
+
 class CutRecord(_Base):
     """Why a source range is absent from the spine (derived reasons for ``edl show``)."""
 
@@ -203,6 +248,9 @@ class EDL(_Base):
     mix: Mix = Field(default_factory=Mix)
     markers: list[Marker] = Field(default_factory=list)
     output: Output = Field(default_factory=Output)
+    reframe: Reframe | None = None
+    sound: Sound = Field(default_factory=Sound)
+    commands: dict[str, list[str]] = Field(default_factory=dict, description="Commands the generic baker may run, by name")
     cuts: list[CutRecord] = Field(default_factory=list)
     history: list[HistoryEntry] = Field(default_factory=list)
 
@@ -292,8 +340,26 @@ class EDL(_Base):
     def timemap(self):
         from videocli.core.timeutil import TimeMap
 
-        overlaps = {t.after: t.duration for t in self.transitions if t.type in ("dissolve",)}
-        return TimeMap([(c.id, c.source, c.start, c.end, c.speed) for c in self.tracks.main], overlaps)
+        overlaps = {t.after: t.duration for t in self.transitions if t.type != "cut"}
+        clips = []
+        for c in self.tracks.main:
+            # The time map uses each clip's effective speed: source span over output span.
+            eff = (c.end - c.start) / max(1e-9, c.out_duration - c.freeze) if (c.ramp or c.freeze) else c.speed
+            clips.append((c.id, c.source, c.start, c.end, eff))
+        tm = TimeMap(clips, overlaps)
+        if any(c.freeze for c in self.tracks.main):
+            # Freezes extend a clip's output after its last source frame.
+            t = 0.0
+            spans = []
+            from videocli.core.timeutil import Span
+
+            for c, sp in zip(self.tracks.main, tm.spans):
+                nsp = Span(sp.id, sp.source, sp.start, sp.end, sp.speed, t)
+                spans.append(nsp)
+                t = nsp.out_end + c.freeze - overlaps.get(c.id, 0.0)
+            tm.spans = spans
+            tm.duration = t + overlaps.get(self.tracks.main[-1].id, 0.0) if spans else 0.0
+        return tm
 
     def output_duration(self) -> float:
         return self.timemap().duration
