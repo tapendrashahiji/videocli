@@ -14,6 +14,36 @@ from videocli.cli.registry import command, sub_app
 from videocli.cli.state import state
 
 
+def describe_issue(i: dict[str, Any]) -> str:
+    """One readable line for a lint issue: what, which item, and the key numbers."""
+    who = i.get("item") or i.get("clip") or ", ".join(i.get("items", []))
+    bits = []
+    if i.get("covers"):
+        c = i["covers"][0]
+        what = c.get("text") or "a face"
+        bits.append(f"covers {what[:40]!r}" + (f" (+{len(i['covers']) - 1} more)" if len(i["covers"]) > 1 else ""))
+    if "needed" in i:
+        bits.append(f"{i.get('duration')}s, needs {i['needed']}s")
+    if i.get("text") and i["rule"] == "crop_cuts_text":
+        bits.append(f"cuts {i['text'][0]!r}; x {i.get('x')} → {i.get('suggested_x')}")
+    if "at" in i and not bits:
+        bits.append(f"at {i['at']}s")
+    return f"{i['rule']:22} {who or '':8} {'; '.join(bits)}"
+
+
+def print_lint(d: dict[str, Any]) -> None:
+    from videocli.cli.output import console
+
+    c = console()
+    state_ = "[green]passed[/green]" if d.get("passed") else "[red]failed[/red]"
+    c.print(f"{d['name']}: {state_}  ({d['errors']} error(s), {d['warnings']} warning(s))")
+    for i in d.get("issues", []):
+        color = "red" if i["severity"] == "error" else "yellow"
+        c.print(f"  [{color}]{i['severity']:5}[/{color}] {describe_issue(i)}", highlight=False, markup=True)
+        if i.get("fix"):
+            c.print(f"        [dim]fix:[/dim] {i['fix']}", highlight=False)
+
+
 def register(app: typer.Typer) -> None:
     W: dict[str, Any] = {"writes": True, "dry_run": True, "exit_codes": (0, 2, 4), "phase": 8}
     gfx = sub_app("gfx", "Titles, lower thirds, callouts and other graphics from templates, timed to the spoken word.")
@@ -237,6 +267,10 @@ def register(app: typer.Typer) -> None:
             raise CheckFailed("GFX_LINT_FAILED", f"{res['errors']} graphics error(s) in {name}.", details=res,
                               hint=next((f"Run: {i['fix']}" for i in res["issues"] if i.get("fix")), "See details.issues"))
         emit(res)
+
+    @formatter("gfx lint")
+    def _fmt_gfx_lint(d: dict[str, Any]) -> None:
+        print_lint(d)
 
     @command(gfx, "new-template", group="gfx", summary="Scaffold a working template folder for a baker", writes=True, dry_run=False, exit_codes=(0, 2), phase=8)
     def gfx_new_template(directory: str = typer.Argument(..., metavar="DIR"), baker: str = typer.Option("titles", "--baker")) -> None:
