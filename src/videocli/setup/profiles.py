@@ -55,6 +55,12 @@ GROUPS: dict[str, Group] = {
             pip=("librosa>=0.10",), modules=("librosa",), licences=(("librosa", "ISC"),), size_mb=120,
         ),
         Group("stems", "Dialogue and music separation", pip=("demucs>=4",), modules=("demucs",), licences=(("demucs", "MIT"),), size_mb=2500),
+        Group(
+            "gpu", "NVIDIA CUDA 12 runtime for GPU transcription (cuBLAS, cuDNN 9)",
+            pip=("nvidia-cublas-cu12", "nvidia-cudnn-cu12>=9,<10"), modules=("nvidia.cublas", "nvidia.cudnn"),
+            licences=(("NVIDIA cuBLAS", "NVIDIA proprietary (redistributable)"), ("NVIDIA cuDNN", "NVIDIA proprietary (redistributable)")),
+            size_mb=1200,
+        ),
         Group("ocio", "Log, HDR and ACES colour", pip=("opencolorio>=2.3",), modules=("PyOpenColorIO",), licences=(("OpenColorIO", "BSD-3-Clause"),), size_mb=40),
         Group("manim", "Diagram and equation graphics", pip=("manim>=0.18",), modules=("manim",), licences=(("manim", "MIT"),), size_mb=300),
         Group(
@@ -74,7 +80,7 @@ PROFILES: dict[str, tuple[str, ...]] = {
     "lecture": ("base",),
     "finishing": ("base", "ocio", "html", "otio"),
     "artistic": ("base", "ocio", "html", "otio", "perception", "music", "diarize"),
-    "full": tuple(GROUPS),
+    "full": tuple(g for g in GROUPS if g != "gpu"),  # NVIDIA wheels are Linux/Windows only: add with --with gpu
 }
 
 PROFILE_BLURB = {

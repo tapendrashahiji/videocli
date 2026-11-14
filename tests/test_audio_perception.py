@@ -285,3 +285,30 @@ def test_gpu_runtime_missing_falls_back_to_cpu(tmp_path, monkeypatch, audio_only
     fw = tmod.FasterWhisper(config.load(None))
     out = fw.transcribe(wav, model="small", language=None, initial_prompt=None, on_progress=lambda f: None)
     assert calls == [("cuda", "float16"), ("cpu", "int8")] and out["device"] == "cpu" and "libcublas" in fw.fallback
+
+
+def test_preload_finds_nvidia_wheel_libraries(tmp_path, monkeypatch):
+    import importlib.machinery
+    import importlib.util
+
+    from videocli.analyze import transcript as tmod
+
+    lib = tmp_path / "nvidia" / "cublas" / "lib"
+    lib.mkdir(parents=True)
+
+    def fake_find_spec(name):
+        if name == "nvidia.cublas":
+            spec = importlib.machinery.ModuleSpec(name, None, is_package=True)
+            spec.submodule_search_locations = [str(tmp_path / "nvidia" / "cublas")]
+            return spec
+        return None
+
+    monkeypatch.setattr(importlib.util, "find_spec", fake_find_spec)
+    assert tmod.nvidia_library_dirs() == [lib]
+
+
+def test_gpu_group_not_in_full_profile():
+    from videocli.setup import profiles
+
+    assert "gpu" in profiles.GROUPS and "gpu" not in profiles.PROFILES["full"]
+    assert profiles.resolve(None, ["gpu"]) == ["base", "gpu"]
