@@ -42,8 +42,9 @@ GROUPS: dict[str, Group] = {
             models=("whisper-small",),
         ),
         Group(
-            "perception", "Shot attributes, faces, visual search",
-            pip=("onnxruntime>=1.17",), modules=("onnxruntime",), licences=(("onnxruntime", "MIT"),), size_mb=600,
+            "perception", "Shot attributes, faces, visual search, screen text (layout)",
+            pip=("onnxruntime>=1.17", "rapidocr>=3.4"), modules=("onnxruntime", "rapidocr"),
+            licences=(("onnxruntime", "MIT"), ("RapidOCR / PaddleOCR models", "Apache-2.0")), size_mb=650,
         ),
         Group(
             "diarize", "Speaker labels",

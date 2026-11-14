@@ -52,6 +52,12 @@ class Settings(BaseModel):
     transcript__low_confidence: float = Field(default=0.5, ge=0, le=1, description="Word probability below which a word is low-confidence")
     transcript__low_confidence_share: float = Field(default=0.15, ge=0, le=1, description="Share of low-confidence words that triggers a warning")
 
+    # layout (screen text, faces, free space)
+    layout__every: float = Field(default=1.0, gt=0, le=10, description="Seconds between layout samples")
+    layout__width: int = Field(default=1280, ge=320, le=3840, description="Frame width for screen-text reading")
+    layout__backend: str = Field(default="rapidocr", description="rapidocr (PaddleOCR text) or florence (text and objects, Florence-2)")
+    layout__ocr_lang: str = Field(default="en", description="Script for rapidocr: en, ch, devanagari, latin, arabic, cyrillic, …")
+
     # silence and loudness
     silence__threshold_db: float = Field(default=-35.0, le=0, description="silencedetect noise threshold in dB")
     silence__min_duration: float = Field(default=0.3, gt=0, description="Shortest silence to record, in seconds")

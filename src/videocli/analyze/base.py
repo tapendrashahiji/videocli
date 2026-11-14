@@ -78,6 +78,7 @@ def register(analyzer: Analyzer) -> Analyzer:
 def _load_all() -> None:
     # Importing the modules registers the analyzers. Kept here so `analyze` imports lazily.
     from videocli.analyze import audio, hearing, loudness, scenes, silence, transcript, vision  # noqa: F401
+    from videocli.layout import analyzer as _layout  # noqa: F401
     from videocli.media import probe_analyzer  # noqa: F401
 
 
