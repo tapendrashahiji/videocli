@@ -30,6 +30,16 @@
       "min": 0.4,
       "max": 2.5
     },
+    "box_x": {
+      "type": "number",
+      "min": 0,
+      "max": 1
+    },
+    "box_y": {
+      "type": "number",
+      "min": 0,
+      "max": 1
+    },
     "animation": {
       "type": "choice",
       "choices": [

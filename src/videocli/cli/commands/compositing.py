@@ -111,7 +111,7 @@ def register(app: typer.Typer) -> None:
     def edl_reframe(name: str = typer.Argument(...),
                     aspect: str = typer.Option("9:16", "--aspect", help="9:16, 1:1, 4:5, 4:3 or 16:9."),
                     mode: str = typer.Option("center", "--mode", help="center, subject, or stack (screen on top, face box below)."),
-                    face: Optional[str] = typer.Option(None, "--face", metavar="X,Y,W,H", help="stack: the face/webcam box in the source, fractions 0-1."),
+                    face: Optional[str] = typer.Option(None, "--face", metavar="X,Y,W,H", help="stack: the face/webcam box in the source, fractions 0-1, or auto (from layout/faces data)."),
                     split: Optional[float] = typer.Option(None, "--split", min=0.3, max=0.85, help="stack: share of the height for the screen (default 0.62)."),
                     clip: Optional[str] = typer.Option(None, "--clip", metavar="CLIP_ID", help="Set one clip's crop centre with --x."),
                     x: Optional[float] = typer.Option(None, "--x", min=0.0, max=1.0, help="Crop centre, 0 (left) to 1 (right).")) -> None:
@@ -135,7 +135,17 @@ def register(app: typer.Typer) -> None:
             if not crops:
                 warnings.append({"code": "REFRAME_CENTER_FALLBACK", "message": "No face data (run analyze --only faces, phase 5); using a centre crop."})
         face_box = None
-        if face:
+        if face == "auto":
+            from videocli.layout.place import median_face
+
+            face_box = median_face(edl, state.workspace())
+            if face_box is None:
+                from videocli.core.errors import InputError
+
+                raise InputError("ARTIFACT_MISSING", "No faces found to place the face panel.",
+                                 hint="Run: videocli analyze FILE --only layout   (or give --face X,Y,W,H)")
+            face_box = tuple(face_box)
+        elif face:
             try:
                 face_box = tuple(float(v) for v in face.split(","))
             except ValueError:

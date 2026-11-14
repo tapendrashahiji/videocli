@@ -52,6 +52,7 @@ def register(app: typer.Typer) -> None:
         land: str = typer.Option("start", "--land", help="start (appear on the word) or end (reveal finishes on it)."),
         duration: Optional[float] = typer.Option(None, "--duration", metavar="S", min=0.2),
         layer: int = typer.Option(0, "--layer", min=0, max=9),
+        place: str = typer.Option("auto", "--place", help="auto: move off on-screen text and faces (needs layout data); keep: template position."),
     ) -> None:
         from videocli.core.errors import UsageError
         from videocli.edl.model import Graphic
@@ -75,11 +76,23 @@ def register(app: typer.Typer) -> None:
             anchor, off = on, offset
         text = tp.text_of(params)
         dur = duration or max(t.duration.default, t.duration.min, reading_time(text) if text else 0.0)
+        if place not in ("auto", "keep"):
+            raise UsageError("BAD_ARGUMENT", "--place must be auto or keep.")
+        placement: dict[str, Any] = {}
+        if place == "auto" and "box_x" not in given and "box_y" not in given:
+            from videocli.layout.place import auto_place
+
+            sp = edl.timemap().span(anchor)
+            if sp is not None:
+                placement = auto_place(ws, edl, t.name, given, sp.out_start + off, sp.out_start + off + dur)
+                if placement.get("moved"):
+                    given = {**given, **{k: str(v) for k, v in placement["params"].items()}}
         gid = edl.next_id("x")
         edl.tracks.graphics.append(Graphic(id=gid, baker=t.baker, template=t.name, params=given, anchor=anchor, offset=off,  # type: ignore[arg-type]
                                            duration=round(dur, 3), layer=layer))
         path = _save(edl, "gfx add", item=gid, template=t.name)
-        emit({"item": gid, "template": t.name, "anchor": anchor, "offset": off, "duration": round(dur, 3), "timing": info, "dry_run": state.dry_run},
+        emit({"item": gid, "template": t.name, "anchor": anchor, "offset": off, "duration": round(dur, 3), "timing": info,
+              "placement": placement, "dry_run": state.dry_run},
              artifacts=[artifact("edl", path)] if path else [],
              next=[f"videocli gfx lint {name}", f"videocli gfx preview {name} {gid} --still {round(t.duration.in_ + 0.2, 2)}"])
 
@@ -98,8 +111,9 @@ def register(app: typer.Typer) -> None:
     @command(gfx, "set", group="gfx", summary="Change a graphic's parameters, duration, offset or layer", **W)
     def gfx_set(name: str = typer.Argument(...), item: str = typer.Argument(..., metavar="ITEM_ID"),
                 param: list[str] = typer.Option([], "--param", metavar="k=v"), duration: Optional[float] = typer.Option(None, "--duration", min=0.2),
-                offset: Optional[float] = typer.Option(None, "--offset"), layer: Optional[int] = typer.Option(None, "--layer", min=0, max=9)) -> None:
-        from videocli.core.errors import InputError
+                offset: Optional[float] = typer.Option(None, "--offset"), layer: Optional[int] = typer.Option(None, "--layer", min=0, max=9),
+                place: Optional[str] = typer.Option(None, "--place", help="auto: move off on-screen text and faces; keep: back to the template position.")) -> None:
+        from videocli.core.errors import InputError, UsageError
         from videocli.graphics import templates as tp
 
         ws = state.workspace()
@@ -116,8 +130,22 @@ def register(app: typer.Typer) -> None:
             g.offset = offset
         if layer is not None:
             g.layer = layer
+        placement: dict[str, Any] = {}
+        if place is not None:
+            if place not in ("auto", "keep"):
+                raise UsageError("BAD_ARGUMENT", "--place must be auto or keep.")
+            base = {k: v for k, v in g.params.items() if k not in ("box_x", "box_y")}
+            g.params = base
+            if place == "auto":
+                from videocli.layout.place import auto_place
+
+                sp = edl.timemap().span(g.anchor)
+                if sp is not None:
+                    placement = auto_place(ws, edl, g.template, base, sp.out_start + g.offset, sp.out_start + g.offset + g.duration)
+                    if placement.get("moved"):
+                        g.params = {**base, **{k: str(v) for k, v in placement["params"].items()}}
         path = _save(edl, "gfx set", item=item)
-        emit({"item": item, "params": g.params, "duration": g.duration, "offset": g.offset, "dry_run": state.dry_run},
+        emit({"item": item, "params": g.params, "duration": g.duration, "offset": g.offset, "placement": placement, "dry_run": state.dry_run},
              artifacts=[artifact("edl", path)] if path else [])
 
     @command(gfx, "remove", group="gfx", summary="Remove a graphic", **W)

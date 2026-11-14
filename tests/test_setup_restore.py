@@ -49,3 +49,15 @@ def test_doctor_reports_lost_and_setup_restore_plans_it(cli, gpu_state):
     assert "gpu" in d["groups"]
     assert any(a["kind"] == "pip" and a["group"] == "gpu" for a in d["actions"])
     assert "reinstall_command" in d
+
+
+def test_install_source_keeps_git_branch(monkeypatch):
+    import json
+    from importlib import metadata
+
+    class Dist:
+        def read_text(self, name):
+            return json.dumps({"url": "https://github.com/o/videocli", "vcs_info": {"vcs": "git", "requested_revision": "main", "commit_id": "abc"}})
+
+    monkeypatch.setattr(metadata, "distribution", lambda name: Dist())
+    assert profiles.install_source() == "git+https://github.com/o/videocli@main"

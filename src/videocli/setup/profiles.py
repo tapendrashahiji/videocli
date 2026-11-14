@@ -42,8 +42,9 @@ GROUPS: dict[str, Group] = {
             models=("whisper-small",),
         ),
         Group(
-            "perception", "Shot attributes, faces, visual search",
-            pip=("onnxruntime>=1.17",), modules=("onnxruntime",), licences=(("onnxruntime", "MIT"),), size_mb=600,
+            "perception", "Shot attributes, faces, visual search, screen text (layout)",
+            pip=("onnxruntime>=1.17", "rapidocr>=3.4"), modules=("onnxruntime", "rapidocr"),
+            licences=(("onnxruntime", "MIT"), ("RapidOCR / PaddleOCR models", "Apache-2.0")), size_mb=650,
         ),
         Group(
             "diarize", "Speaker labels",
@@ -60,6 +61,11 @@ GROUPS: dict[str, Group] = {
             pip=("nvidia-cublas-cu12", "nvidia-cudnn-cu12>=9,<10"), modules=("nvidia.cublas", "nvidia.cudnn"),
             licences=(("NVIDIA cuBLAS", "NVIDIA proprietary (redistributable)"), ("NVIDIA cuDNN", "NVIDIA proprietary (redistributable)")),
             size_mb=1200,
+        ),
+        Group(
+            "objects", "Objects and UI elements on screen (Florence-2 on onnxruntime, for layout --backend florence)",
+            pip=("onnxruntime>=1.17",), modules=("onnxruntime", "tokenizers"),
+            licences=(("Florence-2 (Microsoft)", "MIT"), ("onnxruntime", "MIT")), size_mb=300, models=("florence-2-base",),
         ),
         Group("ocio", "Log, HDR and ACES colour", pip=("opencolorio>=2.3",), modules=("PyOpenColorIO",), licences=(("OpenColorIO", "BSD-3-Clause"),), size_mb=40),
         Group("manim", "Diagram and equation graphics", pip=("manim>=0.18",), modules=("manim",), licences=(("manim", "MIT"),), size_mb=300),
@@ -163,6 +169,11 @@ def check_group(name: str, *, deep: bool = True) -> GroupStatus:
             missing.append(f"node>={g.node_min} (found {'.'.join(map(str, nv))})")
         elif deep:
             missing += [f"npm:{p}" for p in g.npm if not npm_package_installed(p)]
+    if "florence-2-base" in g.models:
+        from videocli.layout import florence
+
+        if not florence.present():
+            missing.append("model:florence-2-base")
     return GroupStatus(name, not missing, missing)
 
 
@@ -222,8 +233,10 @@ def install_source() -> str:
     url = info.get("url")
     if not url:
         return "videocli"
-    if info.get("vcs_info"):
-        return f"git+{url}"
+    vcs = info.get("vcs_info")
+    if vcs:
+        rev = vcs.get("requested_revision")
+        return f"git+{url}" + (f"@{rev}" if rev else "")
     return url.removeprefix("file://")
 
 

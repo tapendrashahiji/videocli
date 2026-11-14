@@ -9,7 +9,7 @@ from typing import Any, Optional
 import typer
 
 from videocli.cli.commands.perception import limit_list, q, resolve_source, window_opts
-from videocli.cli.output import artifact, emit, formatter
+from videocli.cli.output import artifact, console, emit, formatter
 from videocli.cli.registry import command, sub_app
 from videocli.cli.state import state
 
@@ -183,6 +183,68 @@ def register(app: typer.Typer) -> None:
         doc = base.load_artifact(ws, src, "slides") or {}
         shown, total, trunc = limit_list(doc.get("slides", []), limit)
         emit({"total": total, "truncated": trunc, "slides": shown})
+
+    # ------------------------------------------------------------------ layout
+    @command(app, "layout", summary="What is where on screen per stable window: text blocks (OCR), faces, objects and free space", exit_codes=(0, 1, 3, 4), **P5)
+    def layout(file: str = typer.Argument(...),
+               frm: Optional[str] = typer.Option(None, "--from", metavar="T"),
+               to: Optional[str] = typer.Option(None, "--to", metavar="T"),
+               at: Optional[str] = typer.Option(None, "--at", metavar="T", help="Only the window showing this moment."),
+               find: Optional[str] = typer.Option(None, "--find", metavar="TEXT", help="Where and when this text is on screen."),
+               lines: bool = typer.Option(False, "--lines", help="Include every OCR line (default: blocks only)."),
+               limit: Optional[int] = typer.Option(None, "--limit", min=1)) -> None:
+        """Screen layout, source time. Boxes are [x, y, w, h] fractions of the frame."""
+        from videocli.analyze import base
+        from videocli.core.timeutil import parse_time
+        from videocli.layout.ocr import text_similarity
+
+        ws = state.workspace()
+        src = resolve_source(file)
+        ctx = base.RunContext(ws=ws, settings=state.settings, force=state.force)
+        base.run_analyzers(src, ["layout"], ctx, explicit={"layout"})
+        doc = base.load_artifact(ws, src, "layout") or {}
+        wins = doc.get("windows", [])
+        a, b = window_opts(frm, to)
+        if at is not None:
+            t = parse_time(at)
+            wins = [w for w in wins if w["start"] <= t < w["end"]] or wins[-1:]
+        if a is not None or b is not None:
+            wins = [w for w in wins if (b is None or w["start"] < b) and (a is None or w["end"] > a)]
+        if find:
+            hits = []
+            for w in wins:
+                for kind in ("text", "blocks"):
+                    for d in w.get(kind, []):
+                        sim = text_similarity(find, d["text"])
+                        if sim >= 0.75 or find.lower() in d["text"].lower():
+                            hits.append({"window": w["id"], "start": w["start"], "end": w["end"], "box": d["box"],
+                                         "text": d["text"], "match": round(sim, 2), "kind": "line" if kind == "text" else "block"})
+            seen: set[tuple[str, tuple[float, ...]]] = set()
+            hits = [h for h in hits if not ((h["window"], tuple(h["box"])) in seen or seen.add((h["window"], tuple(h["box"]))))]
+            hits.sort(key=lambda h: (-h["match"], h["start"]))
+            shown, total, trunc = limit_list(hits, limit)
+            emit({"query": find, "total": total, "truncated": trunc, "hits": shown, "frame": doc.get("frame")},
+                 warnings=ctx.warnings)
+            return
+        if not lines:
+            wins = [{k: v for k, v in w.items() if k != "text"} for w in wins]
+        shown, total, trunc = limit_list(wins, limit)
+        emit({"provenance": doc.get("provenance"), "frame": doc.get("frame"), "total": total, "truncated": trunc, "windows": shown},
+             warnings=ctx.warnings, next=[f"videocli layout {q(file)} --find \"TEXT\""])
+
+    @formatter("layout")
+    def _fmt_layout(d: dict[str, Any]) -> None:
+        c = console()
+        if "hits" in d:
+            for h in d["hits"]:
+                c.print(f"  {h['start']:7.2f}-{h['end']:7.2f}  {h['window']}  box {h['box']}  {h['text'][:70]}")
+            c.print(f"{d['total']} hit(s) for {d['query']!r}")
+            return
+        for w in d["windows"]:
+            texts = "; ".join(bk["text"][:40] for bk in w.get("blocks", [])[:3])
+            c.print(f"  {w['id']} {w['start']:7.2f}-{w['end']:7.2f}  text {len(w.get('blocks', []))}  faces {len(w['faces'])}  "
+                    f"objects {len(w.get('objects', []))}  free {len(w['free'])}  busy {w['busy']:.0%}  {texts}")
+        c.print(f"{d['total']} window(s)" + (" (truncated)" if d["truncated"] else ""))
 
     # ------------------------------------------------------------------ log
     @command(app, "log", summary="Describe every shot through work orders the calling agent (or another provider) answers", writes=True, dry_run=True, estimate=True, exit_codes=(0, 2, 3, 4, 6), **P5)

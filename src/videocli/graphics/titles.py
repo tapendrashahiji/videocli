@@ -93,6 +93,31 @@ def _text_block(draw: ImageDraw.ImageDraw, xy: tuple[int, int], lines: list[str]
 
 
 def layout(t: Template, p: dict[str, Any], brand: Brand, W: int, H: int, *, chars: int | None = None) -> Layout:
+    """The design's layout, moved so its box starts at ``box_x, box_y`` (fractions) when given."""
+    lay = _design_layout(t, p, brand, W, H, chars=chars)
+    bx, by = p.get("box_x"), p.get("box_y")
+    if bx is None and by is None:
+        return lay
+    x0, y0, x1, y1 = lay.box
+    bw, bh = x1 - x0, y1 - y0
+    nx = x0 if bx is None else int(round(min(max(float(bx), 0.0), 1.0) * W))
+    ny = y0 if by is None else int(round(min(max(float(by), 0.0), 1.0) * H))
+    nx, ny = min(max(nx, 0), max(0, W - bw)), min(max(ny, 0), max(0, H - bh))
+    dx, dy = nx - x0, ny - y0
+    if dx or dy:
+        moved = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        moved.paste(lay.layer, (dx, dy))
+        lay.layer = moved
+        lay.box = (nx, ny, nx + bw, ny + bh)
+        if "slide_from" in lay.extra:
+            lay.extra["slide_from"] = -(nx + bw)
+        if "origin" in lay.extra:
+            ox, oy = lay.extra["origin"]
+            lay.extra["origin"] = (ox + dx, oy + dy)
+    return lay
+
+
+def _design_layout(t: Template, p: dict[str, Any], brand: Brand, W: int, H: int, *, chars: int | None = None) -> Layout:
     design = t.design or t.name
     S = min(W, H)
     Z = S * float(p.get("scale") or 1.0)  # size of type, padding and boxes; positions stay on S
