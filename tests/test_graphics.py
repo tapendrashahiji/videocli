@@ -299,3 +299,15 @@ def test_bottom_graphics_from_edl(cli, av_clip):
     cli.ok("gfx", "add", "bg", "-t", "chapter-marker", "--param", "title=Top", "--at-word", "binary search")
     rngs = bottom_graphics(io.load(Workspace.open(), "bg"))
     assert len(rngs) == 1 and rngs[0][1] - rngs[0][0] == pytest.approx(2.0)
+
+
+def test_reading_time_equal_after_rounding_is_enough(cli, av_clip):
+    from videocli.core.timeutil import ms
+    from videocli.graphics.timing import reading_time
+
+    _edl_with_transcript(cli, av_clip, "rt")
+    title = "Browse Without a Mouse"
+    need = ms(reading_time(title))
+    cli.ok("gfx", "add", "rt", "-t", "lower-third", "--param", f"title={title}", "--at-word", "binary search", "--duration", str(need))
+    d = cli.ok("gfx", "lint", "rt")
+    assert not [i for i in d["issues"] if i["rule"] == "too_short_to_read"]

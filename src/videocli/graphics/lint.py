@@ -50,7 +50,7 @@ def lint(edl: EDL, ws: Any, *, sample_frames: bool = True) -> dict[str, Any]:
             if spec.max_chars and len(str(params.get(name, ""))) > spec.max_chars:
                 issues.append({"rule": "text_too_long", "severity": "error", "item": g.id, "param": name, "chars": len(str(params[name])),
                                "max": spec.max_chars})
-        if text and g.duration < reading_time(text):
+        if text and g.duration + 1e-3 < ms(reading_time(text)):  # equal after rounding is enough
             issues.append({"rule": "too_short_to_read", "severity": "warn", "item": g.id, "duration": g.duration,
                            "needed": ms(reading_time(text)), "fix": f"videocli gfx set {edl.name} {g.id} --duration {ms(reading_time(text))}"})
         if t.baker == "titles":
