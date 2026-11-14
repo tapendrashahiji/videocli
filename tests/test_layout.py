@@ -249,3 +249,45 @@ def test_lint_skips_full_frame_cards_and_auto_captions(cli, screen_clip):
     assert not [i for i in issues if i["rule"] == "overlaps_captions"]  # captions move up on their own
     cli.ok("captions-style", "ff", "--param", "position=bottom")
     assert [i for i in _issues(cli, "ff") if i["rule"] == "overlaps_captions" and i["item"] == lt["item"]]
+
+
+def test_caption_box_style_and_minor_ui():
+    from videocli.graphics import templates as tp
+    from videocli.graphics.captions_ass import build
+    from videocli.judge.layout_check import minor_ui
+
+    words = [{"start": i * 0.3, "end": i * 0.3 + 0.25, "word": f"w{i}"} for i in range(6)]
+    plain = next(x for x in build(words, preset="karaoke", size=(640, 360), duration=3, brand=tp.Brand()).splitlines() if x.startswith("Style:"))
+    boxed = next(x for x in build(words, preset="karaoke", size=(640, 360), duration=3, brand=tp.Brand(), params={"box": "1"}).splitlines()
+                 if x.startswith("Style:"))
+    assert plain.split(",")[15] == "1" and boxed.split(",")[15] == "3"
+    assert minor_ui({"kind": "text", "text": "Go to Top", "box": [0.4, 0.9, 0.08, 0.03]})
+    assert not minor_ui({"kind": "text", "text": "Vimium lets you navigate the browser", "box": [0.27, 0.16, 0.45, 0.64]})
+
+
+def test_verify_layout_boxed_captions_accepted(cli, screen_clip, tmp_path, monkeypatch):
+    from videocli.analyze import transcript as tr
+
+    class Speech:
+        def __init__(self, settings):
+            pass
+
+        def transcribe(self, wav, *, model, language, initial_prompt, on_progress):
+            words = [{"start": 0.3 + i * 0.4, "end": 0.6 + i * 0.4, "word": w, "probability": 0.99}
+                     for i, w in enumerate(["press", "shift", "and", "question", "mark", "for", "help"])]
+            return {"language": "en", "language_probability": 0.9, "segments": [{"start": 0.3, "end": 3.0, "text": "x", "words": words}]}
+
+    monkeypatch.setattr(tr, "BACKEND", Speech)
+    cli.ok("analyze", str(screen_clip))
+    cli.ok("analyze", str(screen_clip), "--only", "layout")
+    cli.ok("plan", str(screen_clip), "-o", "bx", "--keep-only", "0-6", "--no-snap")
+    cli.ok("captions-style", "bx", "--preset", "karaoke", "--param", "position=bottom", "--param", "size=22", "--param", "margin=0.2")
+    out = tmp_path / "bx.mp4"
+    cli.ok("render", "bx", "-o", str(out), "--burn-captions")
+    c = cli.ok("verify", str(out), "--edl", "bx", "--checks", "layout")["checks"][0]
+    assert c["status"] == "warn" and c["items"][0]["problem"] == "caption_covers_screen", c
+    cli.ok("captions-style", "bx", "--param", "box=1")
+    out2 = tmp_path / "bx2.mp4"
+    cli.ok("render", "bx", "-o", str(out2), "--burn-captions")
+    c2 = cli.ok("verify", str(out2), "--edl", "bx", "--checks", "layout")["checks"][0]
+    assert c2["status"] == "pass" and c2["measured"]["captions_boxed_over_text"] >= 1

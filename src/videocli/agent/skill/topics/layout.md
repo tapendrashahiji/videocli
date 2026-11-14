@@ -21,7 +21,10 @@ then prove the result, without looking at a screenshot for every decision.
   objects during its time; the output's `placement` says what it avoided. `--place keep` keeps
   the template position; `gfx set NAME ID --place auto` re-places later. Manual: `--param box_x=0.6 --param box_y=0.1`.
 - Captions with `position=auto` (default) go to the top while the bottom band would cover
-  screen text or a face.
+  screen text or a face. On screens full of text (settings pages, file browsers) neither band
+  is clear: `captions-style NAME --param box=1` puts a semi-transparent bar behind the caption so
+  it stays readable; `verify` then accepts boxed captions over text. Small buttons ("Go to Top")
+  never count as covered.
 - `edl reframe NAME --aspect 9:16 --mode stack --face auto` takes the face panel from the data.
 
 ## Validate

@@ -244,7 +244,7 @@ def render(
     if burn_captions:
         from videocli.render import captions as capmod
 
-        layout = {"max_chars", "lines", "position", "margin", "size", "color", "accent", "outline", "font"}
+        layout = {"max_chars", "lines", "position", "margin", "size", "color", "accent", "outline", "font", "box"}
         from videocli.layout.place import has_layout
 
         if work.captions.preset != "clean" or layout & set(work.captions.params) or work.tracks.graphics or has_layout(work, ws):

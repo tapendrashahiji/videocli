@@ -370,3 +370,18 @@ def register(app: typer.Typer) -> None:
         for ch in d["checks"]:
             color = {"pass": "green", "warn": "yellow", "fail": "red", "skip": "dim"}[ch["status"]]
             c.print(f"  [{color}]{ch['status']:4}[/{color}] {ch['name']:14} {ch['message']}")
+            if ch["status"] in ("warn", "fail"):
+                for it in ch.get("items", [])[:8]:
+                    when = it.get("at", it.get("from"))
+                    what = it.get("problem") or it.get("kind") or ""
+                    detail = it.get("text") or ""
+                    covers = it.get("covers")
+                    if covers:
+                        detail += f" → covers {str(covers[0])[:40]!r}"
+                    head = f"{when:8.2f}s " if isinstance(when, (int, float)) else ""
+                    c.print(f"           {head}{it.get('item') or it.get('clip') or ''} {what} {detail[:80]}", highlight=False, markup=False)
+                    if it.get("fix"):
+                        c.print(f"             fix: {it['fix']}", highlight=False, markup=False)
+                more = len(ch.get("items", [])) - 8
+                if more > 0:
+                    c.print(f"           … {more} more in the report", highlight=False)

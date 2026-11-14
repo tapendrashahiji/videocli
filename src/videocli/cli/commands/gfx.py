@@ -364,10 +364,12 @@ def register(app: typer.Typer) -> None:
                     raise bad(f"{k} must be a number, got {p[k]!r}.") from None
                 if not lo <= v <= hi:
                     raise bad(f"{k} must be between {lo} and {hi}, got {p[k]}.")
+        if "box" in p and str(p["box"]).lower() not in ("0", "1", "true", "false", "yes", "no", "on", "off"):
+            raise bad(f"box must be 1 or 0, got {p['box']!r}.")
         if "position" in p and p["position"] not in ("auto", "bottom", "top"):
             raise bad(f"position must be auto, bottom or top, got {p['position']!r}.")
 
-    @command(app, "captions-style", summary="Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=… max_chars=… lines=1|2 position=auto|bottom|top margin=…)", **W)
+    @command(app, "captions-style", summary="Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=… max_chars=… lines=1|2 position=auto|bottom|top margin=… box=1)", **W)
     def captions_style(name: str = typer.Argument(...), preset: str = typer.Option("clean", "--preset"),
                        param: list[str] = typer.Option([], "--param", metavar="k=v"), burn: bool = typer.Option(True, "--burn/--no-burn")) -> None:
         from videocli.core.errors import UsageError

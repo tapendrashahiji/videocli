@@ -61,6 +61,14 @@ def _find(lines: list[dict[str, Any]], text: str, near: list[float] | None = Non
     return best if best is not None and score >= READABLE else None
 
 
+def minor_ui(item: dict[str, Any]) -> bool:
+    """A small button or label (e.g. "Go to Top ↑"): a caption passing over it hides nothing that matters."""
+    from videocli.layout import geometry as geo
+
+    text = str(item.get("text") or "")
+    return item["kind"] == "text" and geo.area(item["box"]) < 0.004 and len(text.split()) <= 3
+
+
 def check_layout(ctx: Context) -> CheckResult:
     from videocli.graphics import templates as tp
     from videocli.layout.place import graphic_box, has_layout, occupied, overlap_report
@@ -84,8 +92,11 @@ def check_layout(ctx: Context) -> CheckResult:
             continue
         start = sp.out_start + g.offset
         at = min(start + g.duration - 0.15, start + t.duration.in_ + 0.5)
+        from videocli.graphics.lint import FULL_FRAME
+
         targets.append({"kind": "graphic", "item": g.id, "text": text, "at": round(at, 3), "start": start,
-                        "end": start + g.duration, "box": graphic_box(ws, edl, g.template, g.params)})
+                        "end": start + g.duration, "box": graphic_box(ws, edl, g.template, g.params),
+                        "full_frame": (t.design or t.name) in FULL_FRAME})
     if edl.captions.mode == "burn" and ctx.transcripts:
         from videocli.graphics.captions_ass import group_words
         from videocli.render.captions import map_words
@@ -106,7 +117,8 @@ def check_layout(ctx: Context) -> CheckResult:
     with_layout = has_layout(edl, ws)
     frames = _frames(ctx.output, sorted({x["at"] for x in targets}), int(ctx.probe.video.display_width))
     items: list[dict[str, Any]] = []
-    unreadable = covered = caption_seen = 0
+    unreadable = covered = caption_seen = boxed_over = 0
+    boxed = str(edl.captions.params.get("box", "0")).lower() in ("1", "true", "yes", "on")
     for x in targets:
         img = frames.get(x["at"])
         if img is None:
@@ -122,19 +134,29 @@ def check_layout(ctx: Context) -> CheckResult:
             items.append({"at": x["at"], "item": x["item"], "problem": "not_readable", "text": x["text"],
                           "fix": f"videocli gfx set {edl.name} {x['item']} --param scale=1.2"})
             continue
-        if not with_layout:
-            continue
+        if not with_layout or x.get("full_frame"):
+            continue  # title and end cards cover the frame on purpose
         occ = [o for o in occupied(edl, ws, x["at"], x["at"] + 0.01) if o["kind"] in ("text", "face")]
+        if x["kind"] == "caption":
+            occ = [o for o in occ if not minor_ui(o)]
         region = hit["box"] if x["kind"] == "caption" else (x["box"] or hit["box"])
         hits = overlap_report(region, occ)
+        if hits and x["kind"] == "caption" and boxed:
+            boxed_over += 1  # a boxed caption stays readable over screen text: accepted
+            continue
         if hits:
             covered += 1
-            fix = (f"videocli gfx set {edl.name} {x['item']} --place auto" if x["kind"] == "graphic"
-                   else f"videocli captions-style {edl.name} --param position=auto")
+            if x["kind"] == "graphic":
+                fix = f"videocli gfx set {edl.name} {x['item']} --place auto"
+            elif str(edl.captions.params.get("position", "auto")) == "auto":
+                fix = f"videocli captions-style {edl.name} --param box=1   # no clear band on this screen: keep it readable"
+            else:
+                fix = f"videocli captions-style {edl.name} --param position=auto"
             items.append({"at": x["at"], "item": x.get("item", "caption"), "problem": f"{x['kind']}_covers_screen",
                           "text": x["text"][:60], "covers": [h.get("text") or h["kind"] for h in hits[:3]], "fix": fix})
     n_g = sum(1 for x in targets if x["kind"] == "graphic")
-    m = {"graphics": n_g, "unreadable": unreadable, "covering": covered, "captions_checked": caption_seen, "layout_data": with_layout}
+    m = {"graphics": n_g, "unreadable": unreadable, "covering": covered, "captions_checked": caption_seen,
+         "captions_boxed_over_text": boxed_over, "layout_data": with_layout}
     if unreadable:
         return CheckResult("layout", "fail", f"{unreadable} graphic(s) not readable in the render.", items=items, measured=m)
     if covered:
