@@ -47,6 +47,8 @@ class Settings(BaseModel):
     transcript__language: str = Field(default="", description="Language code; empty means auto-detect")
     transcript__device: str = Field(default="auto", description="auto, cpu or cuda")
     transcript__compute_type: str = Field(default="auto", description="ctranslate2 compute type; auto picks per device")
+    transcript__backend: str = Field(default="whisper", description="whisper (local, private) or elevenlabs (cloud; uploads the audio; needs: videocli keys set elevenlabs)")
+    transcript__elevenlabs_model: str = Field(default="scribe_v1", description="ElevenLabs speech-to-text model id")
     transcript__low_confidence: float = Field(default=0.5, ge=0, le=1, description="Word probability below which a word is low-confidence")
     transcript__low_confidence_share: float = Field(default=0.15, ge=0, le=1, description="Share of low-confidence words that triggers a warning")
 

@@ -89,6 +89,40 @@ def register(app: typer.Typer) -> None:
             next=nxt,
         )
 
+    # ------------------------------------------------------------------ keys
+    keys_app = sub_app("keys", "API keys for optional cloud services (typed by a person; never shown).")
+    app.add_typer(keys_app)
+
+    @command(keys_app, "status", group="keys", summary="Which API keys are set and where (never the key itself)", exit_codes=(0,))
+    def keys_status() -> None:
+        from videocli.setup import keys
+
+        rows = keys.status()
+        nxt = [f"videocli keys set {r['service']}   # a person runs this; input is hidden" for r in rows if not r["set"]]
+        emit({"keys": rows}, next=nxt)
+
+    @formatter("keys status")
+    def _fmt_keys(d: dict[str, Any]) -> None:
+        c = console()
+        for r in d["keys"]:
+            where = f"set ({r['source']})" if r["set"] else "not set"
+            c.print(f"  {r['service']:12} {where:20} env {r['env']}")
+
+    @command(keys_app, "set", group="keys", summary="Type an API key at a terminal (hidden) and store it in the project .env (gitignored) or --user", writes=True, dry_run=False, exit_codes=(0, 2))
+    def keys_set(service: str = typer.Argument(..., help="elevenlabs"),
+                 user: bool = typer.Option(False, "--user", help="Store for every project (user config folder) instead of this project.")) -> None:
+        """Ask for an API key with hidden input. Refuses when not run by a person at a terminal."""
+        from videocli.setup import keys
+
+        res = keys.set_interactive(service, "user" if user else "project")
+        emit(res, next=[f"videocli analyze FILE --backend {service} --force"])
+
+    @command(keys_app, "remove", group="keys", summary="Delete a stored API key", writes=True, dry_run=False, exit_codes=(0, 2))
+    def keys_remove(service: str = typer.Argument(...), user: bool = typer.Option(False, "--user")) -> None:
+        from videocli.setup import keys
+
+        emit(keys.remove(service, "user" if user else "project"))
+
     # ------------------------------------------------------------------ config
     cfg = sub_app("config", "Show or change settings.")
     app.add_typer(cfg)
