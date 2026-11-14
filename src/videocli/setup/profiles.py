@@ -226,9 +226,15 @@ def download_whisper(name: str) -> Path:
 
         from faster_whisper import download_model
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            download_model(name, output_dir=str(target))
+        from videocli.setup import live
+
+        def fetch() -> None:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                download_model(name, output_dir=str(target))
+
+        size_mb = live.WHISPER_SIZES_MB.get(name)
+        live.watch_download(fetch, target, size_mb * 1024**2 if size_mb else None)
     except Exception as exc:  # network, proxy, disk
         raise RuntimeFailure(
             "DOWNLOAD_FAILED",
