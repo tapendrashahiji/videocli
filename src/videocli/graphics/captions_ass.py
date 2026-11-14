@@ -71,7 +71,10 @@ def break_index(words: list[str], max_chars: int, lines: int) -> int | None:
 
 
 def build(words: list[dict[str, Any]], *, preset: str, size: tuple[int, int], duration: float, brand: Any,
-          params: dict[str, Any] | None = None, max_chars: int = 42) -> str:
+          params: dict[str, Any] | None = None, max_chars: int = 42,
+          avoid: list[tuple[float, float]] | None = None) -> str:
+    """ASS captions. ``avoid``: output-time ranges where a graphic covers the bottom of the frame;
+    with ``position=auto`` (the default) cues that overlap one move to the top."""
     params = params or {}
     W, H = size
     S = min(W, H)
@@ -80,7 +83,7 @@ def build(words: list[dict[str, Any]], *, preset: str, size: tuple[int, int], du
     # Layout: chars per line, lines per cue, top or bottom, distance from that edge (fraction of height).
     max_chars = int(params.get("max_chars", max_chars))
     n_lines = int(params.get("lines", 2))
-    position = str(params.get("position", "bottom"))
+    position = str(params.get("position", "auto"))
     margin_v = int(H * float(params.get("margin", 0.22 if vertical else 0.08)))
     alignment = 8 if position == "top" else 2
     margin_h = int(W * max(0.05, brand.safe_margin))
@@ -128,6 +131,8 @@ def build(words: list[dict[str, Any]], *, preset: str, size: tuple[int, int], du
         else:
             toks = [_esc(w["word"].upper() if preset == "bold-words" else w["word"]) for w in c]
             text = " ".join(toks) if brk is None else " ".join(toks[:brk]) + "\\N" + " ".join(toks[brk:])
+        if position == "auto" and avoid and any(a < end and start < b for a, b in avoid):
+            text = "{\\an8}" + text  # a lower third is on screen: this cue goes to the top
         lines.append(f"Dialogue: 0,{_ts(start)},{_ts(end)},Default,,0,0,0,,{text}")
     return "\n".join(head + lines) + "\n"
 
@@ -142,4 +147,23 @@ def cue_times(ass_text: str) -> list[tuple[float, float]]:
                 h, m, s = x.split(":")
                 return ms(int(h) * 3600 + int(m) * 60 + float(s))
             out.append((p(f[1]), p(f[2])))
+    return out
+
+
+#: Templates drawn in the lower part of the frame, which captions should not cover.
+BOTTOM_TEMPLATES = {"lower-third"}
+
+
+def bottom_graphics(edl: Any) -> list[tuple[float, float]]:
+    """Output-time ranges where a graphic sits at the bottom of the frame."""
+    spans = {sp.id: sp for sp in edl.timemap().spans}
+    out = []
+    for g in edl.tracks.graphics:
+        sp = spans.get(g.anchor)
+        if sp is None:
+            continue
+        low = g.template in BOTTOM_TEMPLATES or (g.template == "callout" and float(g.params.get("y", 0.4)) >= 0.6)
+        if low:
+            start = sp.out_start + g.offset
+            out.append((start, start + g.duration))
     return out

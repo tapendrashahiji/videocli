@@ -289,7 +289,7 @@ def register(app: typer.Typer) -> None:
         from videocli.core.errors import UsageError
 
         def bad(msg: str) -> UsageError:
-            return UsageError("BAD_ARGUMENT", msg, hint="Layout: max_chars=10-80 lines=1|2 position=bottom|top margin=0-0.45")
+            return UsageError("BAD_ARGUMENT", msg, hint="Layout: max_chars=10-80 lines=1|2 position=auto|bottom|top margin=0-0.45")
 
         checks = {
             "max_chars": (int, 10, 80), "lines": (int, 1, 2), "margin": (float, 0.0, 0.45), "size": (float, 6, 400),
@@ -302,10 +302,10 @@ def register(app: typer.Typer) -> None:
                     raise bad(f"{k} must be a number, got {p[k]!r}.") from None
                 if not lo <= v <= hi:
                     raise bad(f"{k} must be between {lo} and {hi}, got {p[k]}.")
-        if "position" in p and p["position"] not in ("bottom", "top"):
-            raise bad(f"position must be bottom or top, got {p['position']!r}.")
+        if "position" in p and p["position"] not in ("auto", "bottom", "top"):
+            raise bad(f"position must be auto, bottom or top, got {p['position']!r}.")
 
-    @command(app, "captions-style", summary="Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=… max_chars=… lines=1|2 position=bottom|top margin=…)", **W)
+    @command(app, "captions-style", summary="Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=… max_chars=… lines=1|2 position=auto|bottom|top margin=…)", **W)
     def captions_style(name: str = typer.Argument(...), preset: str = typer.Option("clean", "--preset"),
                        param: list[str] = typer.Option([], "--param", metavar="k=v"), burn: bool = typer.Option(True, "--burn/--no-burn")) -> None:
         from videocli.core.errors import UsageError

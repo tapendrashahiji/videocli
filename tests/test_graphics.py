@@ -270,3 +270,32 @@ def test_scale_param_shrinks_lower_third():
 
     with pytest.raises(UsageError):
         tp.resolve_params(t, {"title": "x", "scale": 5}, tp.Brand())
+
+
+def test_captions_auto_move_to_top_over_lower_third():
+    from videocli.graphics.captions_ass import build
+
+    words = [{"start": i * 0.5, "end": i * 0.5 + 0.4, "word": f"w{i}."} for i in range(12)]
+    ass = build(words, preset="karaoke", size=(640, 360), duration=10, brand=tp.Brand(), avoid=[(2.0, 4.0)])
+    dl = [x for x in ass.splitlines() if x.startswith("Dialogue:")]
+    top = [x for x in dl if "{\\an8}" in x]
+    assert top and len(top) < len(dl)
+    from videocli.graphics.captions_ass import cue_times
+
+    for x in dl:
+        a, b = cue_times(x + "\n")[0]
+        assert ("{\\an8}" in x) == (a < 4.0 and 2.0 < b)
+    fixed = build(words, preset="karaoke", size=(640, 360), duration=10, brand=tp.Brand(), avoid=[(2.0, 4.0)], params={"position": "bottom"})
+    assert "{\\an8}" not in fixed
+
+
+def test_bottom_graphics_from_edl(cli, av_clip):
+    from videocli.core.workspace import Workspace
+    from videocli.edl import io
+    from videocli.graphics.captions_ass import bottom_graphics
+
+    _edl_with_transcript(cli, av_clip, "bg")
+    cli.ok("gfx", "add", "bg", "-t", "lower-third", "--param", "title=Hi", "--at-word", "binary search", "--duration", "2")
+    cli.ok("gfx", "add", "bg", "-t", "chapter-marker", "--param", "title=Top", "--at-word", "binary search")
+    rngs = bottom_graphics(io.load(Workspace.open(), "bg"))
+    assert len(rngs) == 1 and rngs[0][1] - rngs[0][0] == pytest.approx(2.0)
