@@ -1,0 +1,61 @@
+{
+  "additionalProperties": true,
+  "properties": {
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "path": {
+      "title": "Path",
+      "type": "string"
+    },
+    "ran": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Ran",
+      "type": "array"
+    },
+    "cached": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Cached",
+      "type": "array"
+    },
+    "skipped": {
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": "Skipped",
+      "type": "array"
+    },
+    "seconds": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Seconds",
+      "type": "object"
+    },
+    "summary": {
+      "additionalProperties": true,
+      "title": "Summary",
+      "type": "object"
+    }
+  },
+  "required": [
+    "source_id",
+    "path",
+    "ran",
+    "cached",
+    "skipped",
+    "seconds",
+    "summary"
+  ],
+  "title": "AnalyzeData",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/command/analyze.json"
+}

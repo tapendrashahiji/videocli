@@ -1,0 +1,75 @@
+{
+  "$defs": {
+    "Range_": {
+      "additionalProperties": true,
+      "properties": {
+        "start": {
+          "title": "Start",
+          "type": "number"
+        },
+        "end": {
+          "title": "End",
+          "type": "number"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "Range_",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "properties": {
+    "schema": {
+      "title": "Schema",
+      "type": "string"
+    },
+    "key": {
+      "title": "Key",
+      "type": "string"
+    },
+    "created": {
+      "title": "Created",
+      "type": "string"
+    },
+    "tool_version": {
+      "title": "Tool Version",
+      "type": "string"
+    },
+    "params": {
+      "additionalProperties": true,
+      "title": "Params",
+      "type": "object"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "duration": {
+      "title": "Duration",
+      "type": "number"
+    },
+    "scenes": {
+      "items": {
+        "$ref": "#/$defs/Range_"
+      },
+      "title": "Scenes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "key",
+    "created",
+    "tool_version",
+    "params",
+    "source_id",
+    "duration",
+    "scenes"
+  ],
+  "title": "ScenesFile",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/scenes.json"
+}

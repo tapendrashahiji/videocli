@@ -1,0 +1,78 @@
+{
+  "additionalProperties": true,
+  "properties": {
+    "python": {
+      "title": "Python",
+      "type": "string"
+    },
+    "platform": {
+      "title": "Platform",
+      "type": "string"
+    },
+    "ffmpeg": {
+      "additionalProperties": true,
+      "title": "Ffmpeg",
+      "type": "object"
+    },
+    "ffprobe": {
+      "additionalProperties": true,
+      "title": "Ffprobe",
+      "type": "object"
+    },
+    "models": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "title": "Models",
+      "type": "object"
+    },
+    "groups": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "title": "Groups",
+      "type": "object"
+    },
+    "licences": {
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": "Licences",
+      "type": "array"
+    },
+    "gpu": {
+      "additionalProperties": true,
+      "title": "Gpu",
+      "type": "object"
+    },
+    "ready": {
+      "title": "Ready",
+      "type": "boolean"
+    },
+    "fix": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Fix",
+      "type": "array"
+    }
+  },
+  "required": [
+    "python",
+    "platform",
+    "ffmpeg",
+    "ffprobe",
+    "models",
+    "groups",
+    "licences",
+    "gpu",
+    "ready",
+    "fix"
+  ],
+  "title": "DoctorData",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/command/doctor.json"
+}

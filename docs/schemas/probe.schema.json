@@ -1,0 +1,396 @@
+{
+  "$defs": {
+    "AudioInfo": {
+      "properties": {
+        "index": {
+          "title": "Index",
+          "type": "integer"
+        },
+        "stream_index": {
+          "title": "Stream Index",
+          "type": "integer"
+        },
+        "codec": {
+          "title": "Codec",
+          "type": "string"
+        },
+        "sample_rate": {
+          "title": "Sample Rate",
+          "type": "integer"
+        },
+        "channels": {
+          "title": "Channels",
+          "type": "integer"
+        },
+        "channel_layout": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Channel Layout"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration"
+        }
+      },
+      "required": [
+        "index",
+        "stream_index",
+        "codec",
+        "sample_rate",
+        "channels"
+      ],
+      "title": "AudioInfo",
+      "type": "object"
+    },
+    "ColorInfo": {
+      "properties": {
+        "primaries": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primaries"
+        },
+        "transfer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transfer"
+        },
+        "matrix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Matrix"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Range"
+        },
+        "hdr": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "hlg, pq or null for SDR",
+          "title": "Hdr"
+        },
+        "log_guess": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Log Guess"
+        }
+      },
+      "title": "ColorInfo",
+      "type": "object"
+    },
+    "SubtitleInfo": {
+      "properties": {
+        "index": {
+          "title": "Index",
+          "type": "integer"
+        },
+        "stream_index": {
+          "title": "Stream Index",
+          "type": "integer"
+        },
+        "codec": {
+          "title": "Codec",
+          "type": "string"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        }
+      },
+      "required": [
+        "index",
+        "stream_index",
+        "codec"
+      ],
+      "title": "SubtitleInfo",
+      "type": "object"
+    },
+    "VideoInfo": {
+      "properties": {
+        "index": {
+          "default": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "codec": {
+          "title": "Codec",
+          "type": "string"
+        },
+        "width": {
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "title": "Height",
+          "type": "integer"
+        },
+        "display_width": {
+          "title": "Display Width",
+          "type": "integer"
+        },
+        "display_height": {
+          "title": "Display Height",
+          "type": "integer"
+        },
+        "fps": {
+          "title": "Fps",
+          "type": "string"
+        },
+        "avg_fps": {
+          "title": "Avg Fps",
+          "type": "string"
+        },
+        "vfr": {
+          "title": "Vfr",
+          "type": "boolean"
+        },
+        "rotation": {
+          "default": 0,
+          "title": "Rotation",
+          "type": "integer"
+        },
+        "pix_fmt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pix Fmt"
+        },
+        "bit_depth": {
+          "default": 8,
+          "title": "Bit Depth",
+          "type": "integer"
+        },
+        "frames": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frames"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration"
+        },
+        "alpha": {
+          "default": false,
+          "title": "Alpha",
+          "type": "boolean"
+        },
+        "color": {
+          "$ref": "#/$defs/ColorInfo"
+        }
+      },
+      "required": [
+        "codec",
+        "width",
+        "height",
+        "display_width",
+        "display_height",
+        "fps",
+        "avg_fps",
+        "vfr"
+      ],
+      "title": "VideoInfo",
+      "type": "object"
+    },
+    "Warn": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "Warn",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "schema": {
+      "default": "videocli.probe/v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "path": {
+      "title": "Path",
+      "type": "string"
+    },
+    "size": {
+      "title": "Size",
+      "type": "integer"
+    },
+    "duration": {
+      "title": "Duration",
+      "type": "number"
+    },
+    "container": {
+      "title": "Container",
+      "type": "string"
+    },
+    "bit_rate": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Bit Rate"
+    },
+    "video": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VideoInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "audio": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AudioInfo"
+      },
+      "title": "Audio",
+      "type": "array"
+    },
+    "subtitles": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/SubtitleInfo"
+      },
+      "title": "Subtitles",
+      "type": "array"
+    },
+    "warnings": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Warn"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_id",
+    "path",
+    "size",
+    "duration",
+    "container"
+  ],
+  "title": "ProbeResult",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/probe.json"
+}

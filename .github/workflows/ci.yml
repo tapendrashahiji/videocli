@@ -17,8 +17,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv pip install -e ".[dev]"
-      - run: ruff check src tests eval
-      - run: ruff format --check src tests eval || true
+      - run: ruff check src tests eval scripts
+      - run: python scripts/gen_docs.py && git diff --exit-code docs/commands.md
       - run: pyright
 
   test:

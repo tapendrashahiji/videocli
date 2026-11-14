@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "SheetOut": {
+      "additionalProperties": true,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "width": {
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "title": "Height",
+          "type": "integer"
+        },
+        "tiles": {
+          "items": {
+            "$ref": "#/$defs/Tile"
+          },
+          "title": "Tiles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "path",
+        "width",
+        "height",
+        "tiles"
+      ],
+      "title": "SheetOut",
+      "type": "object"
+    },
+    "Tile": {
+      "additionalProperties": true,
+      "properties": {
+        "row": {
+          "title": "Row",
+          "type": "integer"
+        },
+        "col": {
+          "title": "Col",
+          "type": "integer"
+        },
+        "time": {
+          "title": "Time",
+          "type": "number"
+        }
+      },
+      "required": [
+        "row",
+        "col",
+        "time"
+      ],
+      "title": "Tile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "properties": {
+    "mode": {
+      "title": "Mode",
+      "type": "string"
+    },
+    "tiles": {
+      "title": "Tiles",
+      "type": "integer"
+    },
+    "sheets": {
+      "items": {
+        "$ref": "#/$defs/SheetOut"
+      },
+      "title": "Sheets",
+      "type": "array"
+    }
+  },
+  "required": [
+    "mode",
+    "tiles",
+    "sheets"
+  ],
+  "title": "SheetData",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/command/sheet.json"
+}

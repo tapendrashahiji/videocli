@@ -1,0 +1,100 @@
+{
+  "$defs": {
+    "CheckOut": {
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "skip"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "items": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "status",
+        "message",
+        "items"
+      ],
+      "title": "CheckOut",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "properties": {
+    "schema": {
+      "title": "Schema",
+      "type": "string"
+    },
+    "output": {
+      "title": "Output",
+      "type": "string"
+    },
+    "edl": {
+      "title": "Edl",
+      "type": "string"
+    },
+    "passed": {
+      "title": "Passed",
+      "type": "boolean"
+    },
+    "failed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Failed",
+      "type": "array"
+    },
+    "warned": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warned",
+      "type": "array"
+    },
+    "duration": {
+      "title": "Duration",
+      "type": "number"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/CheckOut"
+      },
+      "title": "Checks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "output",
+    "edl",
+    "passed",
+    "failed",
+    "warned",
+    "duration",
+    "checks"
+  ],
+  "title": "VerifyReport",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/command/verify.json"
+}

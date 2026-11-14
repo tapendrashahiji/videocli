@@ -1,0 +1,85 @@
+{
+  "additionalProperties": true,
+  "properties": {
+    "schema": {
+      "title": "Schema",
+      "type": "string"
+    },
+    "key": {
+      "title": "Key",
+      "type": "string"
+    },
+    "created": {
+      "title": "Created",
+      "type": "string"
+    },
+    "tool_version": {
+      "title": "Tool Version",
+      "type": "string"
+    },
+    "params": {
+      "additionalProperties": true,
+      "title": "Params",
+      "type": "object"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "integrated_lufs": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Integrated Lufs"
+    },
+    "lra_lu": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Lra Lu"
+    },
+    "true_peak_db": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "True Peak Db"
+    },
+    "momentary_per_second": {
+      "items": {
+        "type": "number"
+      },
+      "title": "Momentary Per Second",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "key",
+    "created",
+    "tool_version",
+    "params",
+    "source_id",
+    "integrated_lufs",
+    "lra_lu",
+    "true_peak_db",
+    "momentary_per_second"
+  ],
+  "title": "LoudnessFile",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/loudness.json"
+}

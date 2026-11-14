@@ -1,0 +1,69 @@
+{
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "tracks": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Tracks",
+      "type": "object"
+    },
+    "source_duration": {
+      "title": "Source Duration",
+      "type": "number"
+    },
+    "output_duration": {
+      "title": "Output Duration",
+      "type": "number"
+    },
+    "removed_seconds": {
+      "title": "Removed Seconds",
+      "type": "number"
+    },
+    "removed_percent": {
+      "title": "Removed Percent",
+      "type": "number"
+    },
+    "shortest_clip": {
+      "title": "Shortest Clip",
+      "type": "number"
+    },
+    "longest_cut": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Longest Cut"
+    },
+    "by_reason": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "By Reason",
+      "type": "object"
+    }
+  },
+  "required": [
+    "name",
+    "tracks",
+    "source_duration",
+    "output_duration",
+    "removed_seconds",
+    "removed_percent",
+    "shortest_clip",
+    "longest_cut",
+    "by_reason"
+  ],
+  "title": "EdlShowData",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/command/edl-show.json"
+}

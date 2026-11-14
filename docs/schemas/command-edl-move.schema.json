@@ -1,0 +1,38 @@
+{
+  "additionalProperties": true,
+  "properties": {
+    "before": {
+      "additionalProperties": true,
+      "title": "Before",
+      "type": "object"
+    },
+    "after": {
+      "additionalProperties": true,
+      "title": "After",
+      "type": "object"
+    },
+    "added": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Added",
+      "type": "array"
+    },
+    "removed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Removed",
+      "type": "array"
+    }
+  },
+  "required": [
+    "before",
+    "after",
+    "added",
+    "removed"
+  ],
+  "title": "EdlOpData",
+  "type": "object",
+  "$id": "https://videocli.dev/schema/command/edl-move.json"
+}
