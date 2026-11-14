@@ -324,12 +324,11 @@ def run_mix(node: Node, out_dir: Path, inputs: list[Path]) -> str:
     speech = p.get("speech")
     if speech is None and any(o.get("duck_db") for _, o in music_items):
         speech = _speech_from_energy(mono, min(total, len(mono)))
-    stems_buf = {"dialogue": None, "music": None, "effects": None}
     m_raw = out_dir / "music.f32"
     e_raw = out_dir / "effects.f32"
     with open(raw, "wb") as fh, open(m_raw, "wb") as fm, open(e_raw, "wb") as fe:
         envs = {}
-        for f, o in music_items:
+        for _f, o in music_items:
             if o.get("duck_db"):
                 envs[o["id"]] = _env_from_ranges(speech or [], total, float(o["duck_db"]))
         maps = [(np.memmap(f, dtype="<i2", mode="r").reshape(-1, CHANNELS), o) for f, o in music_items]
@@ -358,8 +357,6 @@ def run_mix(node: Node, out_dir: Path, inputs: list[Path]) -> str:
             fh.write((dbuf + mbuf + ebuf).astype("<f4").tobytes())
             fm.write(mbuf.astype("<f4").tobytes())
             fe.write(ebuf.astype("<f4").tobytes())
-            if stems:
-                stems_buf["dialogue"] = True
         del dialogue
     # dialogue stem includes room tone: rebuild it as total - music - effects at write time
     name = _finish(p, raw, out_dir, total)

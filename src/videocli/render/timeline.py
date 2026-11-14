@@ -119,7 +119,7 @@ def _src_at(p: ClipPlan, local: int, fps: Fraction) -> tuple[Unit, float]:
     return u, u.src_start
 
 
-def _window(edl: EDL, plans: dict[str, ClipPlan], item: Any, frames: int, fps: Fraction, total: int) -> tuple[int, int] | None:
+def _window(edl: EDL, plans: dict[str, ClipPlan], item: Any, frames: float, fps: Fraction, total: int) -> tuple[int, int] | None:
     p = plans.get(item.anchor)
     if p is None:
         return None

@@ -25,7 +25,7 @@ def _source(file: str):
 
 def register(app: typer.Typer) -> None:
     edl_app = next(g.typer_instance for g in app.registered_groups if g.typer_instance and g.typer_instance.info.name == "edl")
-    W = dict(writes=True, dry_run=True, exit_codes=(0, 2, 4), phase=6)
+    W: dict[str, Any] = {"writes": True, "dry_run": True, "exit_codes": (0, 2, 4), "phase": 6}
 
     @command(edl_app, "overlay", group="edl", summary="Put B-roll over a spine clip (cover) or picture-in-picture (pip), anchored so it follows the clip", **W)
     def edl_overlay(

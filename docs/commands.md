@@ -117,6 +117,25 @@ Report installed tools, groups, models and the commands that fix what is missing
 
 Exit codes: 0
 
+## `videocli edl audio`
+
+Add music, an effect or room tone at an output time, with gain, ducking under speech, fades and --fit
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--source FILE` | text | yes |  |
+| `--role` | text |  | music, sfx or tone. |
+| `--at OUT_T` | time |  | Output time where it starts. |
+| `--from T` | time |  | Source in-point. |
+| `--to T` | time |  | Source out-point. |
+| `--gain DB` | number |  |  |
+| `--duck DB` | number |  | Lower by this much under speech (e.g. -10). |
+| `--fade S` | number |  |  |
+| `--fit` | flag |  | Loop or trim to the end of the edit. |
+
 ## `videocli edl copy`
 
 Copy an EDL to a new name (a revision to experiment on)
@@ -202,6 +221,41 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `--before CLIP_ID|start` | text |  |  |
 | `--after CLIP_ID|end` | text |  |  |
 
+## `videocli edl overlay`
+
+Put B-roll over a spine clip (cover) or picture-in-picture (pip), anchored so it follows the clip
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--source FILE` | text | yes | Overlay media. |
+| `--from T` | time | yes | Overlay source in-point. |
+| `--to T` | time | yes | Overlay source out-point. |
+| `--on CLIP_ID` | text | yes | Spine clip it is anchored to. |
+| `--offset S` | number |  | Seconds after the clip's first frame (output time). |
+| `--mode` | text |  | cover or pip. |
+| `--pos` | text |  | pip corner tl|tr|bl|br or X,Y (0-1 or pixels). |
+| `--scale` | number |  | pip width as a share of the frame (default 0.33). |
+| `--sound` | flag |  | Keep the overlay's own sound (default: muted). |
+| `--mute` | flag |  |  |
+| `--opacity` | number |  |  |
+
+## `videocli edl reframe`
+
+Vertical, square or 4:5 output with a crop per shot (center, or subject from face data)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--aspect` | text |  | 9:16, 1:1, 4:5, 4:3 or 16:9. |
+| `--mode` | text |  | center or subject. |
+| `--clip CLIP_ID` | text |  | Set one clip's crop centre with --x. |
+| `--x` | number |  | Crop centre, 0 (left) to 1 (right). |
+
 ## `videocli edl restore`
 
 Bring back a previously removed source-time range
@@ -228,6 +282,35 @@ Exit codes: 0, 4
 | `--clips` | flag |  |  |
 | `--limit` | integer |  |  |
 
+## `videocli edl sound`
+
+Dialogue clean-up (denoise, levelling, compression, high-pass) and room tone under gaps
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--denoise F` | number |  |  |
+| `--level` | flag |  | Even out levels across speakers. |
+| `--compress` | flag |  | Gentle compression. |
+| `--highpass HZ` | number |  | High-pass cutoff (0 removes). |
+| `--room-tone auto|FILE|none` | text |  |  |
+
+## `videocli edl speed`
+
+Constant speed (--rate), a ramp (--ramp POS:RATE,…) or a freeze of the last frame (--freeze S)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `CLIP_ID CLIP_ID` | text | yes |  |
+| `--rate` | number |  |  |
+| `--ramp 0:1.0,0.6:2.5,1:1.0` | text |  |  |
+| `--freeze S` | number |  |  |
+
 ## `videocli edl split`
 
 Split a clip at a source time; the second part gets a new id
@@ -239,6 +322,45 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `NAME` | text | yes |  |
 | `CLIP_ID CLIP_ID` | text | yes |  |
 | `--at T` | time | yes | Source time inside the clip. |
+
+## `videocli edl split-edit`
+
+J/L cut: sound starts before (--lead) or runs past (--lag) the picture cut
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `CLIP_ID CLIP_ID` | text | yes |  |
+| `--lead S` | number |  |  |
+| `--lag S` | number |  |  |
+
+## `videocli edl stabilize`
+
+Stabilise a clip (two-pass, baked and cached); --strength 0 removes it
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `CLIP_ID CLIP_ID` | text | yes |  |
+| `--strength` | number |  |  |
+
+## `videocli edl transition`
+
+Transition after a spine clip: dissolve, fade (through black), dip (through a colour) or cut; shortens the edit by the overlap
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `CLIP_ID CLIP_ID` | text | yes |  |
+| `--type` | text |  | dissolve, fade, dip or cut (removes). |
+| `--duration S` | number |  |  |
+| `--color` | text |  | dip colour: black or white. |
 
 ## `videocli edl trim`
 
@@ -252,6 +374,19 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `CLIP_ID CLIP_ID` | text | yes |  |
 | `--start T` | time |  | New source start. |
 | `--end T` | time |  | New source end. |
+
+## `videocli export`
+
+Hand the timeline to an editor: OpenTimelineIO, Final Cut XML or CMX 3600 (with a round-check)
+
+Exit codes: 0, 1, 2, 3, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--to` | text | yes | otio, fcpxml or edl (CMX 3600). |
+| `-o PATH` | text |  |  |
+| `--relative-to DIR` | text |  | Write media paths relative to DIR. |
 
 ## `videocli find`
 
@@ -346,6 +481,7 @@ Exit codes: 0, 1, 2, 3, 4 · supports writes, `--dry-run`, `--estimate`
 | `--around-cuts S` | number |  | Only S seconds each side of every join, as one labelled reel. |
 | `--burn-captions` | flag |  | Burn captions re-timed from the transcript. |
 | `--no-normalize` | flag |  | Skip loudness normalization. |
+| `--stems` | flag |  | Also write dialogue, music and effects stems next to the output. |
 
 ## `videocli scenes`
 
