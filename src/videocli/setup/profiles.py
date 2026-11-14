@@ -222,8 +222,10 @@ def install_source() -> str:
     url = info.get("url")
     if not url:
         return "videocli"
-    if info.get("vcs_info"):
-        return f"git+{url}"
+    vcs = info.get("vcs_info")
+    if vcs:
+        rev = vcs.get("requested_revision")
+        return f"git+{url}" + (f"@{rev}" if rev else "")
     return url.removeprefix("file://")
 
 
