@@ -328,6 +328,71 @@ def check_clipped_words(ctx: Context) -> CheckResult:
     return CheckResult("clipped_words", "pass", "no clip edge cuts through a word")
 
 
+def _sample_y(path: Path, times: list[float], w: int = 160) -> list[np.ndarray]:
+    """Luma planes (8-bit codes) of frames at ``times``."""
+    out = []
+    for t in times:
+        res = ffmpeg.run(["-ss", f"{t:.3f}", "-i", ffmpeg.fpath(path), "-map", "0:v:0", "-frames:v", "1",
+                          "-vf", f"scale={w}:-2:in_range=tv:out_range=tv,format=gray", "-f", "rawvideo", "-"],
+                         log_name="verify-sample", capture=True, check=False)
+        if res.stdout:
+            out.append(np.frombuffer(res.stdout, dtype=np.uint8))
+    return out
+
+
+def _graded(ctx: Context) -> bool:
+    from videocli.color.render import timeline_graded
+
+    return timeline_graded(ctx.edl)
+
+
+def check_legal_range(ctx: Context) -> CheckResult:
+    """Broadcast-legal luma (16-235) on sampled frames of a graded render."""
+    if ctx.probe.video is None:
+        return CheckResult("legal_range", "skip", "no video stream")
+    if not _graded(ctx):
+        return CheckResult("legal_range", "skip", "not graded")
+    dur = ctx.probe.duration
+    times = [dur * (i + 0.5) / 12 for i in range(12)]
+    items = []
+    worst = 0.0
+    for t, y in zip(times, _sample_y(ctx.output, times), strict=False):
+        share = float(((y < 16) | (y > 235)).mean())
+        worst = max(worst, share)
+        if share > 0.01:
+            items.append({"at": ms(t), "illegal_share": round(share, 4)})
+    m = {"worst_share": round(worst, 4)}
+    if items:
+        return CheckResult("legal_range", "warn", f"{len(items)} sampled frame(s) outside 16-235.", items=items, measured=m)
+    return CheckResult("legal_range", "pass", "sampled frames within legal range", measured=m)
+
+
+def check_added_clipping(ctx: Context) -> CheckResult:
+    """Grades must not clip highlights or crush shadows that the source kept."""
+    if ctx.probe.video is None or not _graded(ctx):
+        return CheckResult("added_clipping", "skip", "not graded")
+    tm = ctx.edl.timemap()
+    items = []
+    for sp in tm.spans:
+        t_out = (sp.out_start + sp.out_end) / 2
+        t_src = sp.start + (t_out - sp.out_start) * sp.speed
+        src = ctx.edl.sources[sp.source]
+        if not src.has_video:
+            continue
+        yo = _sample_y(ctx.output, [t_out])
+        ys = _sample_y(Path(src.path), [t_src])
+        if not yo or not ys:
+            continue
+        hi_o, hi_s = float((yo[0] >= 234).mean()), float((ys[0] >= 234).mean())
+        lo_o, lo_s = float((yo[0] <= 17).mean()), float((ys[0] <= 17).mean())
+        if hi_o - hi_s > 0.02 or lo_o - lo_s > 0.02:
+            items.append({"at": ms(t_out), "clip": sp.id, "clipped_added": round(hi_o - hi_s, 4), "crushed_added": round(lo_o - lo_s, 4),
+                          "fix": f"videocli grade set {ctx.edl.name} --clip {sp.id} --op 'rolloff threshold=0.85'"})
+    if items:
+        return CheckResult("added_clipping", "fail", f"{len(items)} clip(s) gained clipping from the grade.", items=items)
+    return CheckResult("added_clipping", "pass", "no clipping added by the grade")
+
+
 CHECKS = {
     "duration": check_duration,
     "streams": check_streams,
@@ -338,5 +403,7 @@ CHECKS = {
     "silence_gaps": check_silence_gaps,
     "loudness": check_loudness,
     "clipped_words": check_clipped_words,
+    "legal_range": check_legal_range,
+    "added_clipping": check_added_clipping,
 }
 SCAN_NEEDED = {"black_frames", "frozen_frames", "silence_gaps", "loudness"}

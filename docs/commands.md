@@ -384,7 +384,7 @@ Exit codes: 0, 1, 2, 3, 4 · supports writes
 | Name | Type | Required | Help |
 |---|---|---|---|
 | `NAME` | text | yes |  |
-| `--to` | text | yes | otio, fcpxml or edl (CMX 3600). |
+| `--to` | text | yes | otio, fcpxml, edl (CMX 3600), cube (LUT per clip) or cdl (ASC CDL). |
 | `-o PATH` | text |  |  |
 | `--relative-to DIR` | text |  | Write media paths relative to DIR. |
 
@@ -422,6 +422,107 @@ Exit codes: 0, 1, 2, 4 · supports writes
 | `--format` | text |  | jpg or png. |
 | `--limit` | integer |  |  |
 
+## `videocli grade auto`
+
+Balance white and exposure per shoot and match shots to a reference, within skin and clipping limits
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--balance` | flag |  |  |
+| `--match` | flag |  |  |
+| `--reference CLIP_ID|IMAGE` | text |  |  |
+| `--strength` | number |  |  |
+
+## `videocli grade input`
+
+Input transform for a source: auto (from tags), none, hlg_to_rec709, pq_to_rec709, bt601_to_rec709 or a camera .cube
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--source ID` | text | yes |  |
+| `--transform auto|NAME|LUT.cube` | text |  |  |
+
+## `videocli grade look`
+
+Timeline look from a .cube, or fitted from a reference frame or video (contrast, saturation, warmth)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--from REF` | text | yes |  |
+| `--strength` | number |  |  |
+
+## `videocli grade match`
+
+Fit a CDL that moves one clip toward another clip or an image
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text | yes |  |
+| `--to CLIP_ID|IMAGE` | text | yes |  |
+| `--strength` | number |  |  |
+
+## `videocli grade preview`
+
+Before/after stills (--split) or N ranked candidates on one sheet (--candidates N)
+
+Exit codes: 0, 2, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text |  |  |
+| `--split` | flag |  |  |
+| `--candidates` | integer |  |  |
+
+## `videocli grade reset`
+
+Remove a clip's grade (or every grade with no --clip)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text |  |  |
+
+## `videocli grade set`
+
+Add an op to a clip's grade, a shared group grade, or the timeline look (e.g. --op 'cdl slope=1.05,1,0.95 sat=0.9')
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text |  |  |
+| `--group KEY` | text |  | Shared grade key; with --clip, assigns the clip to it. |
+| `--look` | flag |  | The timeline look, applied after every clip grade. |
+| `--op` | text |  | Op in text form; repeatable. |
+| `--replace` | flag |  | Replace the grade's ops instead of appending. |
+
+## `videocli grade show`
+
+Grades, their ops, and which clips use them
+
+Exit codes: 0, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text |  |  |
+
 ## `videocli index`
 
 Summary and artifact pointers for a source (read this first)
@@ -437,6 +538,20 @@ Exit codes: 0, 4
 List unfinished long-running jobs (interrupted renders resume when re-run)
 
 Exit codes: 0
+
+## `videocli lut build`
+
+Write the compiled .cube for a clip's grade or the look (opens in Resolve and other tools)
+
+Exit codes: 0, 2, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--clip ID` | text |  |  |
+| `--look` | flag |  |  |
+| `-o OUT.cube` | text | yes |  |
+| `--size` | integer |  | 33 or 65. |
 
 ## `videocli plan`
 
@@ -511,6 +626,22 @@ Exit codes: 0, 2
 | `NAME` | text |  | e.g. envelope, edl, probe, verify, 'command:render'. Omit to list. |
 | `--all` | flag |  | Every schema. |
 | `-o DIR` | text |  | With --all: write one file per schema. |
+
+## `videocli scopes`
+
+Colour as numbers per shot or clip: luma percentiles, clipping, channel means, saturation, white balance, shot-to-shot difference
+
+Exit codes: 0, 2, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `TARGET FILE|NAME` | text | yes | Media file, or an EDL name (measures each clip with its grade). |
+| `--shots` | flag |  | Per shot (file) or per clip (EDL). |
+| `--at T` | time |  | One frame. |
+| `--from T` | time |  |  |
+| `--to T` | time |  |  |
+| `--ungraded` | flag |  | EDL: measure before the grade. |
+| `--sheet` | flag |  | EDL: also write before/after stills. |
 
 ## `videocli setup`
 

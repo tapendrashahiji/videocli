@@ -117,8 +117,9 @@ def rgb_to_hsv(rgb: np.ndarray) -> np.ndarray:
 
 def _soft_range(x: np.ndarray, lo: float, hi: float, soft: float, circular: bool = False) -> np.ndarray:
     if circular:
-        centre = ((lo + hi) / 2) % 360
-        half = ((hi - lo) % 360) / 2
+        span = (hi - lo) % 360
+        centre = (lo + span / 2) % 360
+        half = span / 2
         dist = np.abs((x - centre + 180) % 360 - 180)
         return np.clip(1 - (dist - half) / max(soft, 1e-6), 0, 1)
     return np.clip(np.minimum((x - lo) / max(soft, 1e-6) + 1, (hi - x) / max(soft, 1e-6) + 1), 0, 1)
