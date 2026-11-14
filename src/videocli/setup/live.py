@@ -152,8 +152,28 @@ def proc_wait(proc: subprocess.Popen, seconds: float) -> None:
         proc.wait(timeout=seconds)
 
 
-def watch_download(fn: Callable[[], Any], target: Path, total: int | None) -> Any:
-    """Run ``fn`` in a thread while reporting how many bytes have landed under ``target``."""
+def hf_cache_dirs() -> list[Path]:
+    """Where Hugging Face downloads can stage bytes before the final file appears.
+
+    The Xet transfer backend writes chunks to its own cache and only creates the
+    model file at the end, so watching the target folder alone would sit near zero.
+    """
+    home = Path(os.environ.get("HF_HOME") or Path.home() / ".cache" / "huggingface")
+    dirs = [Path(os.environ["HF_XET_CACHE"])] if os.environ.get("HF_XET_CACHE") else []
+    return [*dirs, home / "xet"]
+
+
+def watch_download(fn: Callable[[], Any], target: Path, total: int | None, extra: list[Path] | None = None) -> Any:
+    """Run ``fn`` in a thread while reporting how many bytes have landed under ``target``.
+
+    ``extra`` folders (download caches) count too; the larger growth wins, so a
+    backend that stages elsewhere and then copies is not counted twice.
+    """
+    watched = [target, *(extra or [])]
+
+    def landed() -> int:
+        return max(dir_bytes(d) - b for d, b in zip(watched, base, strict=True))
+
     box: dict[str, Any] = {}
 
     def run() -> None:
@@ -162,18 +182,18 @@ def watch_download(fn: Callable[[], Any], target: Path, total: int | None) -> An
         except BaseException as exc:  # re-raised in the caller's thread
             box["error"] = exc
 
+    base = [dir_bytes(d) for d in watched]
     t = threading.Thread(target=run, daemon=True)
     t.start()
-    start = dir_bytes(target)
     meter = Meter(total)
     while t.is_alive():
-        meter.report(max(0, dir_bytes(target) - start))
+        meter.report(max(0, landed()))
         t.join(timeout=HEARTBEAT)
     if "error" in box:
         raise box["error"]
-    done = dir_bytes(target) - start
+    done = max(0, landed())
     progress.update(1.0, f"{fmt_mb(done)} · {fmt_elapsed(time.monotonic() - meter.t0)}", bytes_done=done)
     return box.get("value")
 
 
-__all__ = ["WHISPER_SIZES_MB", "Meter", "dir_bytes", "net_rx_bytes", "parse_size", "run_streaming", "watch_download"]
+__all__ = ["WHISPER_SIZES_MB", "Meter", "dir_bytes", "hf_cache_dirs", "net_rx_bytes", "parse_size", "run_streaming", "watch_download"]
