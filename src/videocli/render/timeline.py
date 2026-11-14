@@ -194,7 +194,7 @@ def compile_timeline(
 
     chunks: list[Node] = []
     w, h = size
-    for f0, f1 in zip(edges, edges[1:]):
+    for f0, f1 in zip(edges, edges[1:], strict=False):
         if f1 <= f0:
             continue
         n = f1 - f0

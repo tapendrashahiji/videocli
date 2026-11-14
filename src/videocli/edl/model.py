@@ -27,6 +27,8 @@ class SourceRef(_Base):
     fps: str | None = None
     has_video: bool = True
     has_audio: bool = True
+    width: int | None = None
+    height: int | None = None
     input_transform: str | None = None
 
 
@@ -59,7 +61,7 @@ class Clip(_Base):
             pts = self.ramp
             if len(pts) < 2 or pts[0][0] != 0.0 or pts[-1][0] != 1.0:
                 raise ValueError(f"clip {self.id}: a ramp needs points from position 0 to 1")
-            if any(b[0] <= a[0] for a, b in zip(pts, pts[1:])):
+            if any(b[0] <= a[0] for a, b in zip(pts, pts[1:], strict=False)):
                 raise ValueError(f"clip {self.id}: ramp positions must increase")
             if any(not (0.05 <= r <= 20) for _, r in pts):
                 raise ValueError(f"clip {self.id}: ramp rates must be between 0.05 and 20")
@@ -88,7 +90,7 @@ class Clip(_Base):
 
 
 def _interp(points: list[tuple[float, float]], p: float) -> float:
-    for (p0, r0), (p1, r1) in zip(points, points[1:]):
+    for (p0, r0), (p1, r1) in zip(points, points[1:], strict=False):
         if p0 <= p <= p1:
             return r0 + (r1 - r0) * (p - p0) / (p1 - p0)
     return points[-1][1]
@@ -353,7 +355,7 @@ class EDL(_Base):
             spans = []
             from videocli.core.timeutil import Span
 
-            for c, sp in zip(self.tracks.main, tm.spans):
+            for c, sp in zip(self.tracks.main, tm.spans, strict=False):
                 nsp = Span(sp.id, sp.source, sp.start, sp.end, sp.speed, t)
                 spans.append(nsp)
                 t = nsp.out_end + c.freeze - overlaps.get(c.id, 0.0)

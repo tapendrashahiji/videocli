@@ -208,9 +208,7 @@ def run_music(node: Node, out_dir: Path, inputs: list[Path]) -> str:
     if p.get("loop") and not p.get("pingpong"):
         inp += ["-stream_loop", "-1"]
     inp += ["-ss", f"{p['start']:.6f}"]
-    if p.get("end") is not None and not p.get("loop"):
-        inp += ["-t", f"{p['end'] - p['start']:.6f}"]
-    elif p.get("end") is not None and p.get("pingpong"):
+    if p.get("end") is not None and not p.get("loop") or p.get("end") is not None and p.get("pingpong"):
         inp += ["-t", f"{p['end'] - p['start']:.6f}"]
     inp += ["-i", ffmpeg.fpath(p["path"])]
     pre = f"aresample={SAMPLE_RATE},aformat=sample_fmts=fltp:channel_layouts=stereo"
@@ -299,7 +297,7 @@ def run_mix(node: Node, out_dir: Path, inputs: list[Path]) -> str:
     total = int(p["samples"])
     n_d = len(p["placements"])
     raw = out_dir / "mix.f32"
-    placements = [(entry_file(d), int(off), float(gain)) for d, (off, gain) in zip(inputs[:n_d], p["placements"])]
+    placements = [(entry_file(d), int(off), float(gain)) for d, (off, gain) in zip(inputs[:n_d], p["placements"], strict=False)]
     others = p.get("others") or []
     extra_in = inputs[n_d:]
     cleanup = p.get("cleanup") or {}
@@ -312,7 +310,7 @@ def run_mix(node: Node, out_dir: Path, inputs: list[Path]) -> str:
     # Overlay sound (wav lanes) joins the dialogue stem; music/sfx/tone are raw s16 files.
     d_place = list(placements)
     music_items = []
-    for d, o in zip(extra_in, others):
+    for d, o in zip(extra_in, others, strict=False):
         f = entry_file(d)
         if f.suffix == ".wav":
             d_place.append((f, int(o["offset"]), 10 ** (o.get("gain_db", 0.0) / 20)))

@@ -52,9 +52,10 @@ class Context:
     @property
     def expected_duration(self) -> float:
         from videocli.core.timeutil import Rate
+        from videocli.render.timeline import plan_clips
 
         r = Rate.parse(self.edl.rate)
-        frames = sum(max(1, round(c.out_duration * r.fps)) for c in self.edl.tracks.main)
+        _, frames = plan_clips(self.edl, r.value)
         return frames / r.fps
 
 

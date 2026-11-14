@@ -20,6 +20,7 @@ def source_ref(ws: Workspace, src: Source) -> tuple[SourceRef, Any]:
     ref = SourceRef(
         path=str(src.path), duration=pr.duration, fps=pr.video.fps if pr.video else None,
         has_video=pr.video is not None, has_audio=bool(pr.audio),
+        width=pr.video.display_width if pr.video else None, height=pr.video.display_height if pr.video else None,
     )
     return ref, pr
 

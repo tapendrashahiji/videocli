@@ -13,7 +13,7 @@ from videocli.core import progress
 from videocli.core.cache import Store, make_key
 from videocli.core.errors import InputError, UsageError, feature_not_available
 from videocli.core.source import check_unchanged, compute_source_id
-from videocli.core.timeutil import Rate, ms
+from videocli.core.timeutil import ms
 from videocli.core.workspace import Workspace
 from videocli.edl.model import EDL, Clip
 from videocli.media import ffmpeg
