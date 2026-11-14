@@ -245,14 +245,21 @@ def render(
         from videocli.render import captions as capmod
 
         layout = {"max_chars", "lines", "position", "margin", "size", "color", "accent", "outline", "font"}
-        if work.captions.preset != "clean" or layout & set(work.captions.params) or work.tracks.graphics:
+        from videocli.layout.place import has_layout
+
+        if work.captions.preset != "clean" or layout & set(work.captions.params) or work.tracks.graphics or has_layout(work, ws):
             from videocli.graphics import captions_ass
             from videocli.graphics.templates import load_brand
+            from videocli.layout.place import caption_avoid
+
+            def _margin(e):
+                m = e.captions.params.get("margin")
+                return float(m) if m is not None else None
 
             words = capmod.map_words(work, transcripts or {})
             ass = captions_ass.build(words, preset=work.captions.preset, size=comp.size, duration=comp.duration,
                                      brand=load_brand(ws), params=work.captions.params, max_chars=work.captions.max_chars,
-                                     avoid=captions_ass.bottom_graphics(work))
+                                     avoid=captions_ass.bottom_graphics(work) + caption_avoid(work, ws, margin=_margin(work)))
         else:
             cues = capmod.build(work, transcripts or {})
     job_id = "render-" + make_key(edl.model_dump(mode="json", by_alias=True), preset.name, str(out.resolve()), around_cuts, burn_captions)[:12]
