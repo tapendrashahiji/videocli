@@ -14,4 +14,4 @@ from videocli.cli.commands import (
     probe,
 )
 
-COMMAND_MODULES = [env, probe, perception, deep, edit, compositing, colour, gfx, editorial, eyes, agent]
+COMMAND_MODULES = [env, probe, perception, deep, edit, compositing, colour, gfx, editorial, director, eyes, agent]
