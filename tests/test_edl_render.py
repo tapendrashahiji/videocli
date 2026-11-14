@@ -315,10 +315,10 @@ def test_render_refuses_source_and_unrenderable(cli, counter_clip):
     assert code == 4 and env["error"]["code"] == "OUTPUT_IS_SOURCE"
     p = Path(".videocli/edits/fc5.edl.json")
     d = json.loads(p.read_text())
-    d["transitions"] = [{"after": "c0001", "type": "dissolve", "duration": 0.2}]
+    d["tracks"]["graphics"] = [{"id": "x0001", "template": "lower-third", "anchor": "c0001", "duration": 1.0}]
     p.write_text(json.dumps(d))
     code, env = cli("render", name, "-o", "t.mp4")
-    assert code == 2 and env["error"]["code"] == "FEATURE_NOT_AVAILABLE" and env["error"]["details"]["phase"] == 6
+    assert code == 2 and env["error"]["code"] == "FEATURE_NOT_AVAILABLE" and env["error"]["details"]["phase"] == 8
 
 
 def test_edl_invalid_on_hand_edit(cli, counter_clip):

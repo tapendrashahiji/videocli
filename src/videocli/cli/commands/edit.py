@@ -286,6 +286,7 @@ def register(app: typer.Typer) -> None:
         around_cuts: Optional[float] = typer.Option(None, "--around-cuts", metavar="S", help="Only S seconds each side of every join, as one labelled reel."),
         burn_captions: bool = typer.Option(False, "--burn-captions", help="Burn captions re-timed from the transcript."),
         no_normalize: bool = typer.Option(False, "--no-normalize", help="Skip loudness normalization."),
+        stems: bool = typer.Option(False, "--stems", help="Also write dialogue, music and effects stems next to the output."),
     ) -> None:
         """Render an EDL to a file."""
         from videocli.render.run import render
@@ -297,7 +298,7 @@ def register(app: typer.Typer) -> None:
             preset_name="preview" if preview else (preset or edl.output.preset),
             settings=state.settings, jobs=int(state.settings.jobs), burn_captions=burn_captions,
             normalize=not no_normalize, around_cuts=around_cuts,
-            transcripts=_transcripts(edl) if burn_captions else None, argv=state.argv,
+            transcripts=_transcripts(edl) if burn_captions else None, argv=state.argv, stems=stems,
             dry_run=state.dry_run, want_estimate=state.estimate,
         )
         if state.estimate or state.dry_run:
