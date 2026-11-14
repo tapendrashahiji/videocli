@@ -5,6 +5,7 @@ from videocli.cli.commands import (
     colour,
     compositing,
     deep,
+    director,
     edit,
     editorial,
     env,
