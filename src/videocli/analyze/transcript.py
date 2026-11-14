@@ -56,8 +56,15 @@ class FasterWhisper:
         device, compute = self._device()
         jobs = int(getattr(self.settings, "jobs", 4))
         wm = WhisperModel(str(path) if path else model, device=device, compute_type=compute, cpu_threads=jobs, local_files_only=True)
+        # Hand Whisper the samples ourselves: faster-whisper's own file decoding goes through PyAV,
+        # whose API changes between releases (av 19 dropped open(metadata_errors=...)).
+        from videocli.media.audio import read_wav
+
+        audio, _rate = read_wav(Path(wav))
+        if audio.ndim > 1:
+            audio = audio.mean(axis=1)
         segments, info = wm.transcribe(
-            str(wav), language=language or None, initial_prompt=initial_prompt or None,
+            audio, language=language or None, initial_prompt=initial_prompt or None,
             word_timestamps=True, vad_filter=True, beam_size=5,
         )
         total = float(info.duration or 0.0) or 1.0

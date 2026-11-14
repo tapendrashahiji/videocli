@@ -233,3 +233,34 @@ def test_real_tiny_model_finds_key_words(cli, media_dir):  # pragma: no cover - 
         download_whisper("tiny")
     d = cli.ok("analyze", str(speech), "--model", "tiny", "--language", "en")
     assert d["summary"]["word_count"] > 3
+
+
+def test_faster_whisper_gets_samples_not_a_path(tmp_path, monkeypatch, audio_only):
+    """faster-whisper must not decode files itself (its PyAV call broke with av 19)."""
+    import sys
+    import types
+
+    import numpy as np
+
+    from videocli.analyze.transcript import FasterWhisper
+    from videocli.core import config
+    from videocli.media.audio import extract_analysis_wav
+    from videocli.setup import profiles
+
+    seen = {}
+
+    class FakeModel:
+        def __init__(self, *a, **k):
+            pass
+
+        def transcribe(self, audio, **kw):
+            seen["type"] = type(audio)
+            seen["dtype"] = getattr(audio, "dtype", None)
+            return iter([]), types.SimpleNamespace(duration=2.0, language="en", language_probability=1.0)
+
+    monkeypatch.setitem(sys.modules, "faster_whisper", types.SimpleNamespace(WhisperModel=FakeModel))
+    monkeypatch.setattr(profiles, "whisper_model_path", lambda m: None)
+    wav = extract_analysis_wav(audio_only, tmp_path / "a.wav")
+    out = FasterWhisper(config.load(None)).transcribe(wav, model="small", language=None, initial_prompt=None, on_progress=lambda f: None)
+    assert seen["type"] is np.ndarray and seen["dtype"] == np.float32
+    assert out["segments"] == []
