@@ -89,11 +89,13 @@ def overlap_report(box: list[float], occ: list[dict[str, Any]], threshold: float
 
 
 def best_spot(size: tuple[float, float], default: tuple[float, float], occ: list[dict[str, Any]], *,
-              margin: float = 0.03, avoid: list[list[float]] | None = None, step: float = 0.025) -> tuple[float, float, float]:
-    """Top-left (x, y) for a box of ``size`` (fractions) that covers the least of ``occ``,
-    preferring spots near ``default``. Returns (x, y, covered area share of the box)."""
+              margin: float = 0.03, avoid: list[list[float]] | None = None, step: float = 0.025,
+              gap: float = 0.03) -> tuple[float, float, float]:
+    """Top-left (x, y) for a box of ``size`` (fractions) that covers the least of ``occ``
+    (kept ``gap`` away from it, so a label does not hug the text), preferring spots near
+    ``default``. Returns (x, y, covered area share of the box)."""
     w, h = size
-    boxes = [it["box"] for it in occ] + list(avoid or [])
+    boxes = [[b[0] - gap, b[1] - gap, b[2] + 2 * gap, b[3] + 2 * gap] for b in (it["box"] for it in occ)] + list(avoid or [])
     best: tuple[float, float, float, float] | None = None
     nx = max(1, int((1 - 2 * margin - w) / step) + 1)
     ny = max(1, int((1 - 2 * margin - h) / step) + 1)
