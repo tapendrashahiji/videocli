@@ -311,3 +311,13 @@ def test_reading_time_equal_after_rounding_is_enough(cli, av_clip):
     cli.ok("gfx", "add", "rt", "-t", "lower-third", "--param", f"title={title}", "--at-word", "binary search", "--duration", str(need))
     d = cli.ok("gfx", "lint", "rt")
     assert not [i for i in d["issues"] if i["rule"] == "too_short_to_read"]
+
+
+def test_captions_style_changes_only_what_is_given(cli, av_clip):
+    _edl_with_transcript(cli, av_clip, "cs")
+    cli.ok("captions-style", "cs", "--preset", "karaoke", "--param", "max_chars=28")
+    d = cli.ok("captions-style", "cs", "--param", "box=1")
+    assert d["preset"] == "karaoke" and d["params"] == {"max_chars": "28", "box": "1"} and d["mode"] == "burn"
+    d = cli.ok("captions-style", "cs", "--unset", "box", "--no-burn")
+    assert d["preset"] == "karaoke" and d["params"] == {"max_chars": "28"} and d["mode"] == "sidecar"
+    assert cli.ok("captions-style", "cs", "--preset", "bold-words")["mode"] == "sidecar"
