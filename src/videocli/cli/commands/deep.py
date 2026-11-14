@@ -241,7 +241,8 @@ def register(app: typer.Typer) -> None:
             c.print(f"{d['total']} hit(s) for {d['query']!r}")
             return
         for w in d["windows"]:
-            texts = "; ".join(bk["text"][:40] for bk in w.get("blocks", [])[:3])
+            big = sorted((bk for bk in w.get("blocks", []) if len(bk["text"]) >= 4), key=lambda bk: -bk["box"][2] * bk["box"][3])
+            texts = "; ".join(bk["text"][:40] for bk in big[:3])
             c.print(f"  {w['id']} {w['start']:7.2f}-{w['end']:7.2f}  text {len(w.get('blocks', []))}  faces {len(w['faces'])}  "
                     f"objects {len(w.get('objects', []))}  free {len(w['free'])}  busy {w['busy']:.0%}  {texts}")
         c.print(f"{d['total']} window(s)" + (" (truncated)" if d["truncated"] else ""))
