@@ -165,6 +165,19 @@ Exit codes: 0, 2
 |---|---|---|---|
 | `--name CMD` | text |  | Only this command, e.g. 'edl cut'. |
 
+## `videocli compare`
+
+Original and render side by side; the edited half freezes under a CUT badge where material was removed
+
+Exit codes: 0, 1, 2, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `OUTPUT OUT` | text | yes | Rendered file. |
+| `--edl NAME` | text | yes | The EDL it was rendered from. |
+| `-o FILE.mp4` | text |  | Default: <OUT>-compare.mp4 |
+| `--drift` | flag |  | Don't sync: play both files from the start (any EDL). |
+
 ## `videocli config set`
 
 Set a setting in the project (or user) config file
@@ -1247,6 +1260,7 @@ Exit codes: 0, 1, 2, 4, 5
 | `DOWNLOAD_FAILED` | A download during setup failed or did not match its checksum |
 | `INSTALL_FAILED` | Installing a dependency group failed |
 | `BAD_ARGUMENT` | An argument or option is missing or invalid |
+| `COMPARE_NOT_SYNCABLE` | The EDL is not a straight cut-down, so compare cannot line it up with its source; use --drift |
 | `FEATURE_NOT_AVAILABLE` | The request needs a feature that a later phase delivers |
 | `NOT_SUPPORTED` | The command does not support this mode (for example --estimate) |
 | `FFMPEG_NOT_FOUND` | No usable ffmpeg or ffprobe was found |
