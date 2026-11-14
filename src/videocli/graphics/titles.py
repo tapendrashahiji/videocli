@@ -51,7 +51,7 @@ def contrast_ratio(a: str, b: str) -> float:
     return (la + 0.05) / (lb + 0.05)
 
 
-def _font(brand: Brand, size: int, bold: bool, text: str) -> ImageFont.FreeTypeFont:
+def _font(brand: Brand, size: float, bold: bool, text: str) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(font_file(brand, bold, text), max(8, int(size)))
 
 

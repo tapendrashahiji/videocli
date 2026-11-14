@@ -77,9 +77,13 @@ def _sample_contrast(edl: EDL, ws: Any, sp: Any, out_t: float, box: tuple[int, i
     src = edl.sources[sp.source]
     if not src.has_video:
         return None
-    t = sp.start + (out_t - sp.out_start) * sp.speed
+    t = sp.start + (min(out_t, sp.out_end - 0.05) - sp.out_start) * sp.speed
+    t = max(sp.start, min(t, sp.end - 0.05))
     W, H = edl.resolution
-    p = extract_many(Path(src.path), [round(t, 3)], ws.source_dir(sp.source) / "frames", width=W)[0]
+    try:
+        p = extract_many(Path(src.path), [round(t, 3)], ws.source_dir(sp.source) / "frames", width=W)[0]
+    except Exception:  # noqa: BLE001 - contrast is advisory; a missing frame skips the rule
+        return None
     import cv2
 
     img = cv2.imread(str(p))

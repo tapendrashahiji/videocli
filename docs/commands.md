@@ -44,6 +44,20 @@ Exit codes: 0, 1, 2, 3, 4 · supports writes, `--dry-run`, `--estimate`
 | `--audio-stream N` | integer |  | Audio stream index. |
 | `--prompt` | text |  | Initial prompt for the speech model (names, jargon). |
 
+## `videocli brand set`
+
+Set the brand kit used by every graphic (re-render to update them all)
+
+Exit codes: 0, 2 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `--font FILE` | text |  |  |
+| `--font-bold FILE` | text |  |  |
+| `--colors #111,#fff,#e63` | text |  | primary, secondary, accent |
+| `--logo FILE` | text |  |  |
+| `--safe-margin` | number |  |  |
+
 ## `videocli cache clear`
 
 Remove all caches (render nodes, bakes, LUTs, analysis artifacts, logs); keeps edits and project files
@@ -78,6 +92,19 @@ Exit codes: 0, 2, 4 · supports writes, `--dry-run`
 | `-o OUT.srt|OUT.vtt` | text | yes |  |
 | `--max-chars` | integer |  |  |
 | `--max-lines` | integer |  |  |
+
+## `videocli captions-style`
+
+Caption style for burned captions: clean, bold-words, karaoke or custom (--param size=… color=… accent=…)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--preset` | text |  |  |
+| `--param k=v` | text |  |  |
+| `--burn` | flag |  |  |
 
 ## `videocli commands`
 
@@ -421,6 +448,104 @@ Exit codes: 0, 1, 2, 4 · supports writes
 | `--width` | integer |  |  |
 | `--format` | text |  | jpg or png. |
 | `--limit` | integer |  |  |
+
+## `videocli gfx add`
+
+Add a graphic anchored to a clip (--on) or to a spoken phrase (--at-word, --land end)
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `--template` | text | yes |  |
+| `--param k=v` | text |  | Template parameter (repeatable). |
+| `--on CLIP_ID` | text |  |  |
+| `--offset S` | number |  |  |
+| `--at-word PHRASE` | text |  |  |
+| `--land` | text |  | start (appear on the word) or end (reveal finishes on it). |
+| `--duration S` | number |  |  |
+| `--layer` | integer |  |  |
+
+## `videocli gfx lint`
+
+Graphics readability and placement: length, safe area, reading time, collisions, captions, contrast
+
+Exit codes: 0, 4, 5
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+
+## `videocli gfx list`
+
+Graphics in an EDL with their output times
+
+Exit codes: 0, 4
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+
+## `videocli gfx new-template`
+
+Scaffold a working template folder for a baker
+
+Exit codes: 0, 2 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `DIRECTORY DIR` | text | yes |  |
+| `--baker` | text |  |  |
+
+## `videocli gfx preview`
+
+One composited frame (--still T, seconds into the graphic) or a short clip of the item over the real footage
+
+Exit codes: 0, 1, 2, 4 · supports writes
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `ITEM ITEM_ID` | text | yes |  |
+| `--still T` | time |  |  |
+| `--clip` | flag |  |  |
+
+## `videocli gfx remove`
+
+Remove a graphic
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `ITEM ITEM_ID` | text | yes |  |
+
+## `videocli gfx set`
+
+Change a graphic's parameters, duration, offset or layer
+
+Exit codes: 0, 2, 4 · supports writes, `--dry-run`
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `NAME` | text | yes |  |
+| `ITEM ITEM_ID` | text | yes |  |
+| `--param k=v` | text |  |  |
+| `--duration` | number |  |  |
+| `--offset` | number |  |  |
+| `--layer` | integer |  |  |
+
+## `videocli gfx templates`
+
+Available templates (project, user, built-in) with their parameters
+
+Exit codes: 0
+
+| Name | Type | Required | Help |
+|---|---|---|---|
+| `--baker` | text |  | titles, manim, html or generic. |
 
 ## `videocli grade auto`
 
